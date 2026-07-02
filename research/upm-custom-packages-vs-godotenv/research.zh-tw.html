@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UPM 自訂套件（Unity）與 GodotEnv（Godot）比較</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #fafafa;
+    color: #24292f;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", Helvetica, Arial, sans-serif;
+    line-height: 1.75;
+  }
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+  h1 {
+    font-size: 1.9rem;
+    border-bottom: 2px solid #d0d7de;
+    padding-bottom: 0.5rem;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 1.4rem;
+    margin-top: 2.5rem;
+    border-bottom: 1px solid #d0d7de;
+    padding-bottom: 0.3rem;
+  }
+  h3 {
+    font-size: 1.1rem;
+    margin-top: 1.8rem;
+  }
+  p {
+    margin: 0.8rem 0;
+  }
+  ul, ol {
+    padding-left: 1.6rem;
+  }
+  li {
+    margin: 0.4rem 0;
+  }
+  a {
+    color: #0969da;
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    background-color: #eff1f3;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  pre {
+    background-color: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    padding: 1rem;
+    overflow-x: auto;
+  }
+  pre code {
+    background-color: transparent;
+    padding: 0;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1.2rem 0;
+  }
+  th, td {
+    border: 1px solid #d0d7de;
+    padding: 0.6rem 0.8rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background-color: #f6f8fa;
+  }
+  strong {
+    font-weight: 600;
+  }
+  .key-gap {
+    background-color: #fff8c5;
+    border: 1px solid #d4b106;
+    border-radius: 6px;
+    padding: 0.9rem 1.1rem;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>UPM 自訂套件（Unity）與 GodotEnv（Godot）比較</h1>
+
+<h2>官方資料來源</h2>
+<ul>
+  <li>Unity Custom Packages（UPM）：<a href="https://docs.unity3d.com/6000.4/Documentation/Manual/CustomPackages.html">https://docs.unity3d.com/6000.4/Documentation/Manual/CustomPackages.html</a></li>
+  <li>GodotEnv（Chickensoft）：<a href="https://github.com/chickensoft-games/godotenv">https://github.com/chickensoft-games/godotenv</a></li>
+</ul>
+
+<h2>Unity：自訂套件（UPM）</h2>
+<ul>
+  <li><strong>目的</strong>：以可重複使用、可分享的單元擴充編輯器／專案功能——可在內部跨專案／團隊使用，或對外公開發佈。</li>
+  <li><strong>建立方式</strong>：Package Manager 的 <code>(+) > Create package</code> 會產生一個初始資料夾與 manifest。</li>
+  <li><strong>Manifest（<code>package.json</code>）</strong>：包含名稱、版本、描述、相依性——隨著套件成熟會手動擴充。</li>
+  <li><strong>程式碼組織</strong>：<code>.asmdef</code> assembly definition 檔案會將套件的 C# 程式碼隔離成獨立的編譯組件（compiled assembly）。</li>
+  <li><strong>套件來源</strong>：embedded（位於專案的 <code>Packages/</code> 資料夾內）、local（路徑參照），或 git（在專案的 manifest 中以 git URL 參照）。</li>
+  <li><strong>版本管理／發佈</strong>：採用語意化版本（semantic versioning）；對於可分享的套件，建議／預期附上 changelog、授權／法律文件、文件、測試與範例。</li>
+  <li><strong>參照方式</strong>：由使用端專案自身的 <code>manifest.json</code> 相依性清單中參照（透過 registry 名稱、git URL，或檔案路徑）。</li>
+</ul>
+
+<h2>Godot：GodotEnv</h2>
+<ul>
+  <li><strong>目的</strong>：一個第三方 CLI 工具（MIT 授權，由 Chickensoft 開發），用來解決 UPM 在 Unity 中合併為一體的兩個獨立問題——Godot <em>引擎版本</em>管理與 <em>addon 相依性</em>管理——因為 Godot 本身並未內建這兩者中的任何一個。</li>
+  <li><strong>版本管理</strong>：可在 Windows／macOS／Linux 上安裝／使用／解除安裝特定的 Godot 版本（3.x 與 4.x，.NET 或 standard 版本）；會維護一個指向目前使用版本的 symlink，並設定 <code>GODOT</code> 環境變數。</li>
+  <li><strong>Addon 管理</strong>：相依性會宣告在專案根目錄的 <code>addons.json</code>／<code>addons.jsonc</code> 中。每個項目會指定：
+    <ul>
+      <li>addon 名稱（必須與其安裝資料夾名稱相符）</li>
+      <li>來源 URL（git repo、本機路徑、symlink，或 zip）</li>
+      <li>來源類型（remote／local／symlink／zip）</li>
+      <li>git checkout 參照（分支或標籤）</li>
+      <li>來源中選用的子資料夾路徑</li>
+    </ul>
+  </li>
+  <li><strong>傳遞性相依（Transitive dependencies）</strong>：一個 addon 本身也可以附帶宣告自身相依性的 <code>addons.json</code>；GodotEnv 會將這些相依性攤平解析（resolves these flatly）。</li>
+  <li><strong>安全性</strong>：在重新安裝前會偵測已安裝 addon 是否有本機修改（不會在使用者不知情的情況下覆蓋本機修改）。</li>
+  <li><strong>核心指令</strong>：<code>godotenv godot install/use/uninstall [version]</code>、<code>godotenv addons init</code>、<code>godotenv addons install</code>、<code>godotenv config list/set</code>。</li>
+</ul>
+
+<h2>比較／對應關係</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Unity（UPM）</th>
+      <th>Godot（GodotEnv）</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>每個套件一個 <code>package.json</code> manifest</td>
+      <td>每個 addon 一個 <code>addons.json</code> 項目</td>
+    </tr>
+    <tr>
+      <td>Registry／git URL／本機路徑來源</td>
+      <td>git repo／本機路徑／symlink／zip 來源（無 registry 概念）</td>
+    </tr>
+    <tr>
+      <td><code>.asmdef</code> 編譯組件隔離</td>
+      <td>沒有針對各個 addon 的編譯組件隔離——Godot 的 C# 通常是單一的專案層級組件（project-wide assembly）</td>
+    </tr>
+    <tr>
+      <td>內建於編輯器中（Package Manager 視窗、Unity 自身的 registry、scoped registries）</td>
+      <td>第三方 CLI 工具，並未內建於 Godot 編輯器中</td>
+    </tr>
+    <tr>
+      <td>由 UPM 解析巢狀套件相依性</td>
+      <td>由 GodotEnv 將巢狀 <code>addons.json</code> 攤平解析</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="key-gap">
+<strong>關鍵落差</strong>：UPM 是官方工具，具備編輯器內的 UI 以及真正的套件 registry（包括 scoped／私有 registries）。Godot 沒有官方對應的等效工具——其內建的 Asset Library 只是一個編輯器內的外掛瀏覽器，而不是以 manifest 驅動、可鎖定版本、可進行傳遞性解析的相依性管理系統。GodotEnv（社群工具）是功能上最接近的替代方案，但它僅支援 git／本機／zip 為基礎的來源——並沒有私有 registry 的概念可以將私有的 UPM scoped registry 遷移過去。
+</div>
+
+<h2>回答隱含的問題</h2>
+
+<h3>1. 是否有官方的 Godot 版本可對應 UPM？</h3>
+<p>沒有。Godot 內建的 Asset Library 涵蓋了手動、編輯器內的外掛探索／安裝，但不具備可重現的相依性管理（沒有 git-ref 鎖定、沒有傳遞性解析、沒有 CLI／CI 腳本化支援）。GodotEnv 是既有的社群替代方案，也是最接近 UPM 功能的選項。</p>
+
+<h3>2. 這個專案能否直接使用 Godot 內建的 Asset Library 來取代 GodotEnv？</h3>
+<p>只適用於簡單、手動管理的情境。它缺乏可重現的版本鎖定、傳遞性解析、本機修改偵測，以及對 CI 友善的腳本化安裝——而這些都是以 UPM 為基礎的自訂套件工作流程很可能已經仰賴的功能。GodotEnv（或是自行打造的、等效於 <code>addons.json</code> 的方案）會是更貼近原本需求的替代方案。</p>
+
+<h3>3. 遷移的形式</h3>
+<p>每一個既有的 UPM 自訂套件都會變成一個 Godot addon 資料夾：</p>
+<ul>
+  <li>如果它是僅供編輯器使用的工具 → 需要一個 <code>plugin.cfg</code>，以及 <code>_enter_tree()</code>／<code>_exit_tree()</code> 外掛生命週期函式。</li>
+  <li>如果它是僅供執行期使用的函式庫 → 只需要一個包含 scripts／resources 的資料夾，不需要 <code>plugin.cfg</code>，並透過 autoload／preload 接入。</li>
+</ul>
+<p>接著每個 addon 都會被宣告為一筆 <code>addons.json</code> 項目，指向其來源目前所在的位置（可能是其自身的 git repo，或是在遷移過渡期間所使用的本機路徑）。</p>
+
+<h2>待辦事項／之後需要驗證的事項</h2>
+<ul>
+  <li>這個專案的自訂 UPM 套件是僅供編輯器使用的工具、執行期函式庫，還是兩者混合？這將決定 Godot 端的 addons 是否需要 <code>plugin.cfg</code>。</li>
+  <li>這些套件目前是否託管在私有／scoped 的 UPM registry 上？如果是，就需要為每個套件規劃一套 git 託管方案，因為 GodotEnv 沒有私有 registry 的概念——只支援 git／本機／zip 來源。</li>
+  <li>是否有任何 C# 自訂套件依賴 <code>.asmdef</code> 所驅動的組件隔離，用於建置時的分離或存取控制？Godot 通常採用單一的專案層級 C# 組件，這可能需要重新思考該邊界的設計方式。</li>
+  <li>在將 GodotEnv 採用為團隊標準工具之前，需確認其目前的版本／成熟度，以及任何已知問題（例如 Windows 上的 symlink 需求）。</li>
+</ul>
+
+</div>
+</body>
+</html>

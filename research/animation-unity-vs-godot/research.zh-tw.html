@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>動畫（Unity：Mecanim/Legacy）vs 動畫（Godot：AnimationPlayer/AnimationTree）——附影片與電影錄製</title>
+<style>
+  :root {
+    color-scheme: light dark;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    background: #fafafa;
+    color: #1f2328;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Helvetica, Arial, sans-serif;
+    line-height: 1.75;
+  }
+  .content {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 5rem;
+  }
+  h1 {
+    font-size: 1.9rem;
+    line-height: 1.4;
+    border-bottom: 3px solid #2d6cdf;
+    padding-bottom: 0.6rem;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 1.4rem;
+    margin-top: 2.6rem;
+    border-bottom: 1px solid #d7dbe0;
+    padding-bottom: 0.4rem;
+  }
+  h3 {
+    font-size: 1.15rem;
+    margin-top: 2rem;
+    color: #14304f;
+  }
+  h4 {
+    font-size: 1.02rem;
+    margin-top: 1.5rem;
+  }
+  a {
+    color: #2d6cdf;
+    text-decoration: none;
+    word-break: break-word;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  p {
+    margin: 0.9rem 0;
+  }
+  ul, ol {
+    padding-left: 1.6rem;
+  }
+  li {
+    margin: 0.4rem 0;
+  }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    background: #eef0f3;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  pre {
+    background: #1e2227;
+    color: #e6e6e6;
+    padding: 1rem 1.2rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    font-size: 0.88em;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1.2rem 0;
+    font-size: 0.95em;
+    display: block;
+    overflow-x: auto;
+  }
+  table thead {
+    background: #eef2fa;
+  }
+  th, td {
+    border: 1px solid #d7dbe0;
+    padding: 0.55rem 0.75rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    font-weight: 600;
+  }
+  tr:nth-child(even) td {
+    background: #f7f9fb;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid #d7dbe0;
+    margin: 2.5rem 0;
+  }
+  .toc {
+    background: #f1f5fc;
+    border: 1px solid #d7e0f5;
+    border-radius: 10px;
+    padding: 1.2rem 1.6rem;
+    margin: 1.6rem 0 2rem;
+  }
+  .toc h2 {
+    margin-top: 0;
+    border-bottom: none;
+    font-size: 1.1rem;
+  }
+  .toc ol {
+    margin: 0.4rem 0 0;
+  }
+  .toc ol ol {
+    margin-top: 0.3rem;
+  }
+  .toc li {
+    margin: 0.3rem 0;
+  }
+  strong {
+    color: #10233f;
+  }
+  em {
+    color: #333;
+  }
+</style>
+</head>
+<body>
+<div class="content">
+
+<h1>動畫（Unity：Mecanim/Legacy）vs 動畫（Godot：AnimationPlayer/AnimationTree）——附影片與電影錄製</h1>
+
+<p>這是一個涵蓋兩側各自相關卻又不同的主題的大章節：</p>
+<ol>
+  <li><strong>角色/屬性動畫</strong>——Unity 的 Mecanim + Legacy 系統 vs Godot 的 AnimationPlayer + AnimationTree。</li>
+  <li><strong>影片播放與遊戲/電影錄製</strong>——在 Godot 文件中歸類於「Animation」之下，但在 Unity 這一側則是一套截然不同的工具。</li>
+</ol>
+
+<div class="toc">
+<h2>目錄</h2>
+<ol>
+  <li><a href="#official-sources">官方資料來源</a></li>
+  <li><a href="#part-a">Part A —— 角色/屬性動畫</a>
+    <ol>
+      <li><a href="#unity-mecanim">Unity：Mecanim（現代系統）</a></li>
+      <li><a href="#unity-legacy">Unity：Legacy 動畫系統</a></li>
+      <li><a href="#godot-animationplayer">Godot：AnimationPlayer</a></li>
+      <li><a href="#godot-animationtree">Godot：AnimationTree</a></li>
+      <li><a href="#godot-2d-skeletons">Godot：2D 骨架與 Cutout Animation（IK）</a></li>
+    </ol>
+  </li>
+  <li><a href="#part-b">Part B —— 影片播放與電影/遊戲錄製</a>
+    <ol>
+      <li><a href="#unity-videoplayer">Unity：VideoPlayer</a></li>
+      <li><a href="#unity-recorder">Unity：螢幕/遊戲錄製（Unity Recorder）</a></li>
+      <li><a href="#godot-videostreamplayer">Godot：VideoStreamPlayer</a></li>
+      <li><a href="#godot-movie-maker">Godot：Movie Maker 模式</a></li>
+      <li><a href="#video-comparison">影片/電影比較表</a></li>
+    </ol>
+  </li>
+  <li><a href="#comparison-mapping">比較／對應表（角色動畫）</a></li>
+  <li><a href="#qa">回答可能會被問到的問題</a></li>
+  <li><a href="#follow-ups">後續追蹤事項／待確認事項</a></li>
+</ol>
+</div>
+
+<h2 id="official-sources">官方資料來源</h2>
+
+<p><strong>Unity —— 動畫：</strong></p>
+<ul>
+  <li>Animation 章節總覽：<a href="https://docs.unity3d.com/6000.4/Documentation/Manual/AnimationSection.html">https://docs.unity3d.com/6000.4/Documentation/Manual/AnimationSection.html</a></li>
+  <li>Mecanim 總覽：<a href="https://docs.unity3d.com/6000.4/Documentation/Manual/animation-mecanim.html">https://docs.unity3d.com/6000.4/Documentation/Manual/animation-mecanim.html</a></li>
+  <li>Legacy 總覽：<a href="https://docs.unity3d.com/6000.4/Documentation/Manual/animation-legacy.html">https://docs.unity3d.com/6000.4/Documentation/Manual/animation-legacy.html</a></li>
+  <li>Animator Controller：<a href="https://docs.unity3d.com/6000.4/Documentation/Manual/animation-animator-controller.html">https://docs.unity3d.com/6000.4/Documentation/Manual/animation-animator-controller.html</a></li>
+  <li>Animation State Machines：<a href="https://docs.unity3d.com/6000.4/Documentation/Manual/AnimationStateMachines.html">https://docs.unity3d.com/6000.4/Documentation/Manual/AnimationStateMachines.html</a></li>
+  <li>Blend Trees：<a href="https://docs.unity3d.com/6000.4/Documentation/Manual/class-BlendTree.html">https://docs.unity3d.com/6000.4/Documentation/Manual/class-BlendTree.html</a></li>
+  <li>Animation Layers：<a href="https://docs.unity3d.com/6000.4/Documentation/Manual/AnimationLayers.html">https://docs.unity3d.com/6000.4/Documentation/Manual/AnimationLayers.html</a></li>
+  <li>Avatar Creation and Setup：<a href="https://docs.unity3d.com/6000.4/Documentation/Manual/AvatarCreationandSetup.html">https://docs.unity3d.com/6000.4/Documentation/Manual/AvatarCreationandSetup.html</a></li>
+  <li>Root Motion：<a href="https://docs.unity3d.com/6000.4/Documentation/Manual/RootMotion.html">https://docs.unity3d.com/6000.4/Documentation/Manual/RootMotion.html</a></li>
+  <li>Animator 元件參考：<a href="https://docs.unity3d.com/6000.4/Documentation/Manual/class-Animator.html">https://docs.unity3d.com/6000.4/Documentation/Manual/class-Animator.html</a></li>
+  <li>Animation Clips 首頁：<a href="https://docs.unity3d.com/6000.4/Documentation/Manual/animation-clips-landing.html">https://docs.unity3d.com/6000.4/Documentation/Manual/animation-clips-landing.html</a></li>
+  <li>Legacy <code>Animation</code> 元件參考：<a href="https://docs.unity3d.com/6000.4/Documentation/Manual/class-Animation.html">https://docs.unity3d.com/6000.4/Documentation/Manual/class-Animation.html</a></li>
+</ul>
+
+<p><strong>Unity —— 影片與錄製：</strong></p>
+<ul>
+  <li>VideoPlayer：<a href="https://docs.unity3d.com/6000.4/Documentation/Manual/VideoPlayer.html">https://docs.unity3d.com/6000.4/Documentation/Manual/VideoPlayer.html</a></li>
+  <li>Unity Recorder 套件：<a href="https://docs.unity3d.com/Manual/com.unity.recorder.html">https://docs.unity3d.com/Manual/com.unity.recorder.html</a></li>
+</ul>
+
+<p><strong>Godot —— 動畫：</strong></p>
+<ul>
+  <li>動畫文件索引：<a href="https://docs.godotengine.org/zh-tw/4.x/tutorials/animation/index.html">https://docs.godotengine.org/zh-tw/4.x/tutorials/animation/index.html</a></li>
+  <li>動畫介紹（AnimationPlayer 基礎）：<a href="https://docs.godotengine.org/zh-tw/4.x/tutorials/animation/introduction.html">https://docs.godotengine.org/zh-tw/4.x/tutorials/animation/introduction.html</a></li>
+  <li>動畫軌道類型：<a href="https://docs.godotengine.org/zh-tw/4.x/tutorials/animation/animation_track_types.html">https://docs.godotengine.org/zh-tw/4.x/tutorials/animation/animation_track_types.html</a></li>
+  <li>AnimationTree：<a href="https://docs.godotengine.org/zh-tw/4.x/tutorials/animation/animation_tree.html">https://docs.godotengine.org/zh-tw/4.x/tutorials/animation/animation_tree.html</a></li>
+  <li>2D 骨架：<a href="https://docs.godotengine.org/zh-tw/4.x/tutorials/animation/2d_skeletons.html">https://docs.godotengine.org/zh-tw/4.x/tutorials/animation/2d_skeletons.html</a></li>
+  <li>Cutout Animation（2D IK）：<a href="https://docs.godotengine.org/zh-tw/4.x/tutorials/animation/cutout_animation.html">https://docs.godotengine.org/zh-tw/4.x/tutorials/animation/cutout_animation.html</a></li>
+</ul>
+
+<p><strong>Godot —— 影片與電影：</strong></p>
+<ul>
+  <li>播放影片：<a href="https://docs.godotengine.org/zh-tw/4.x/tutorials/animation/playing_videos.html">https://docs.godotengine.org/zh-tw/4.x/tutorials/animation/playing_videos.html</a></li>
+  <li>建立電影（Movie Maker 模式）：<a href="https://docs.godotengine.org/zh-tw/4.x/tutorials/animation/creating_movies.html">https://docs.godotengine.org/zh-tw/4.x/tutorials/animation/creating_movies.html</a></li>
+</ul>
+
+<p><strong>未納入：</strong>類似 <code>share.google/aimode/...</code> 的連結不在本次請求範圍內。這一輪沒有被封鎖的資料來源。</p>
+
+<hr>
+
+<h2 id="part-a">Part A —— 角色/屬性動畫</h2>
+
+<h3 id="unity-mecanim">Unity：Mecanim（現代系統）</h3>
+
+<ul>
+  <li><strong>AnimationClip</strong>：動作的基本單位（單一的「Idle」/「Walk」/「Run」等），可從 DCC 工具匯入（FBX）或直接在 Unity 的 Animation 視窗中製作。支援 <strong>Curves</strong>（可隨時間驅動任意屬性，甚至是 Animator 參數）、<strong>Animation Events</strong>（在播放的特定時間點呼叫指令碼方法）、<strong>遮罩</strong>（限制於特定骨骼）以及 <strong>loop optimization</strong>（對齊起始/結束姿勢以達成無縫循環）。</li>
+  <li><strong>Animator 元件</strong>：附加於 GameObject 上；參照一個 <strong>Controller</strong>，以及（對於人形角色）一個 <strong>Avatar</strong>。主要欄位：<strong>Apply Root Motion</strong>、<strong>Update Mode</strong>（Normal / Animate Physics / Unscaled Time）、<strong>Culling Mode</strong>。</li>
+  <li><strong>Animator Controller</strong>：包含狀態機、混合樹（blend trees）與參數的資產，在 Animator 視窗中以視覺化方式編輯。
+    <ul>
+      <li><strong>狀態機</strong>：狀態（各自持有一個 Motion——一個 clip 或一個 blend tree）加上狀態之間的轉場（transitions）。特殊節點：<strong>Entry/Exit</strong>、<strong>Any State</strong>（不論目前處於哪個狀態都能轉入任何狀態——用於「Hit」/「Death」這類全域中斷），以及用於巢狀結構的 <strong>子狀態機</strong>。</li>
+      <li><strong>轉場（Transitions）</strong>：混合時長（blend duration）加上條件；同時提供 <strong>Exit Time</strong>、<strong>Transition Offset</strong> 與 <strong>Interruption Source</strong>（進行中的轉場本身是否可被中斷）。</li>
+      <li><strong>參數（Parameters）</strong>：<strong>Float、Int、Bool、Trigger</strong>，透過 <code>Animator.SetFloat/SetInteger/SetBool/SetTrigger</code> 設定，並由轉場條件與 blend trees 讀取。</li>
+      <li><strong>Blend Trees</strong>：依參數值連續混合多個 clips（clips 應具有相似的時間軸/normalized-time 對齊）。類型：<strong>1D</strong>（單一 float 參數，例如依 Speed 從 Walk 到 Run）、<strong>2D</strong>（兩個參數；子模式有 Simple Directional / Freeform Directional / Freeform Cartesian），以及 <strong>Direct</strong>（每個 Motion 的權重各自由其自己的參數驅動）。</li>
+      <li><strong>Animation Layers</strong>：每個 Controller 可平行執行多個狀態機。每一層都有一個 <strong>Weight</strong>、一種混合模式（<strong>Override</strong> 或 <strong>Additive</strong>——Additive 需要 additive clip 與基礎層之間的屬性相符）、一個 <strong>Avatar Mask</strong>（限制於特定骨骼，例如僅上半身）、並可設為 <strong>Synced Layer</strong>（沿用另一層的狀態機結構但套用不同的 clips，並附帶一個 Timing 選項，用於選擇拉伸至來源長度或依混合長度）。</li>
+    </ul>
+  </li>
+  <li><strong>Avatar 系統（Humanoid vs Generic）</strong>：Humanoid avatars 會將模型的骨骼對應到一個標準化骨架，使 <strong>clip 能在不同人形模型之間重定向（retargeting）</strong>（在一個角色上製作的 walk clip 可以驅動比例不同的另一個角色）。需要骨骼對應（手動，或透過 Human Template 預設）、肌肉定義（關節限制），以及一個大致呈 T-pose 的來源模型。Generic avatars 適用於非人形骨架，且<strong>無法</strong>在不同骨架之間重定向。</li>
+  <li><strong>Root Motion</strong>：角色的實際位置/旋轉是否由動畫資料驅動。<strong>Body Transform</strong>（質心）vs <strong>Root Transform</strong>（Y 平面投影，逐幀計算）；每個 clip 的烘焙控制項（<strong>Root Transform Rotation</strong>、<strong>Position (Y)</strong>、<strong>Position (XZ)</strong>，各自帶有「Bake Into Pose」加上一個「Based Upon」設定）。啟用時，Unity 會在每幀對該物件的指令碼呼叫 <code>OnAnimatorMove()</code>，以便在套用之前攔截/調和 root-motion 差量與物理或 NavMeshAgent 的關係——若設定不一致，這常是造成錯誤（腳滑、位置跳動）的來源。</li>
+  <li><strong>輔助工具</strong>：<strong>Animator Override Controller</strong>（沿用某個 controller 的結構但套用不同的 clips）、<strong>Playables API</strong>（比 Controller 圖表更底層的執行期動畫圖表 API，用於超出 Controller 圖表範圍的程式化動畫圖表）。</li>
+</ul>
+
+<h3 id="unity-legacy">Unity：Legacy 動畫系統</h3>
+
+<ul>
+  <li><strong>元件</strong>：<code>Animation</code>（與 <code>Animator</code> 不同）。欄位：預設的 <code>Animation</code> clip、<code>Animations</code> 陣列、<code>Play Automatically</code>、<code>Animate Physics</code>、<code>Culling Type</code>。</li>
+  <li><strong>沒有狀態機、沒有 Controller 資產、沒有參數、沒有 blend trees</strong>——只是一份透過指令碼命令式（imperatively）控制的扁平 clip 清單：<code>Animation.Play()</code>、<code>Animation.CrossFade()</code>（搭配 <code>PlayMode.StopSameLayer</code>/<code>StopAll</code>），以及公開手動混合權重、層（layers）、wrap mode 與 <code>AnimationBlendMode.Additive</code> 的 <code>AnimationState</code> 物件。</li>
+  <li>用於 Legacy 的 clips 必須在匯入時設定 <strong>Legacy 旗標</strong>——現代的 Mecanim clips 除非標記，否則無法在此使用。</li>
+  <li><strong>現況</strong>：仍受支援，但精神上已明確被棄用——Unity 自己的文件寫著「對於新專案，請使用 Animator 元件」。保留給舊專案，或用於真正瑣碎的情境（例如道具上單一循環的 clip），此時其較低的開銷仍有意義。</li>
+</ul>
+
+<table>
+<thead>
+<tr><th>面向</th><th>Legacy（<code>Animation</code>）</th><th>Mecanim（<code>Animator</code>）</th></tr>
+</thead>
+<tbody>
+<tr><td>控制模型</td><td>命令式（指令碼呼叫 Play/CrossFade）</td><td>宣告式狀態機 + 參數</td></tr>
+<tr><td>混合</td><td>手動權重／CrossFade 呼叫</td><td>內建轉場、blend trees、layers</td></tr>
+<tr><td>重定向（Retargeting）</td><td>無</td><td>Avatar 系統（人形重定向）</td></tr>
+<tr><td>Root motion</td><td>原生不支援</td><td>一級功能</td></tr>
+<tr><td>Clip 需求</td><td>必須標記為「Legacy」</td><td>標準 AnimationClip</td></tr>
+<tr><td>編輯器工具</td><td>無</td><td>Animator 視窗（視覺化圖表編輯器）</td></tr>
+</tbody>
+</table>
+
+<h3 id="godot-animationplayer">Godot：AnimationPlayer</h3>
+
+<ul>
+  <li>一個 <code>Node</code>（非 spatial），作為一個或多個 <code>Animation</code> 資源的資料容器，並附有時間軸/關鍵影格編輯器。<strong>重要注意事項</strong>：由於它只是一個普通的 <code>Node</code>，直接掛在 AnimationPlayer 底下的 2D/3D 子節點<strong>不會</strong>繼承其變換（transform）——不要把場景內容直接掛在 AnimationPlayer 底下（這是從 Unity 帶過來的常見習慣，Unity 中 Animator 是直接掛在它所驅動的 GameObject 上）。</li>
+  <li><strong>Animation Libraries</strong>：個別的 <code>Animation</code> 資源會被登錄到 Animation Library 資源中，以便在不同的 AnimationPlayer 之間重複使用/共享。</li>
+  <li><strong>軌道（Tracks）</strong>：時間軸上的一行，綁定到一個節點路徑加上一個屬性，於第一個關鍵影格建立時自動產生。每條軌道有：<strong>Update Mode</strong>（Continuous / Discrete / Capture）、<strong>Interpolation</strong>（Nearest / Linear / Cubic / Linear Angle / Cubic Angle——Angle 變體會走最短的角度路徑，這對旋轉很重要）、<strong>Loop Mode</strong>（Clamp / Wrap）。</li>
+  <li><strong>標記（Markers）</strong>：時間軸上的具名節點，用於透過 <code>play_section_with_markers()</code> 播放某個子區段。</li>
+  <li><strong>RESET 動畫</strong>：一個特殊的 <code>_RESET</code> 動畫，儲存場景的預設姿勢；同時用於場景儲存一致性（「Reset On Save」）以及作為 AnimationTree 混合時，動畫未涵蓋屬性所使用的預設回退值。</li>
+  <li><strong>混合（Blending）</strong>：clips 之間簡單、固定時長的交叉淡化（crossfade）——這正是促成 AnimationTree 存在的動機性限制。</li>
+</ul>
+
+<p><strong>軌道類型</strong>（來自 <code>animation_track_types.html</code>）：</p>
+
+<table>
+<thead>
+<tr><th>軌道類型</th><th>用途</th><th>備註</th></tr>
+</thead>
+<tbody>
+<tr><td>Property Track</td><td>基礎軌道——可動畫化任何暴露的屬性</td><td>所有專門類型都是它的最佳化變體</td></tr>
+<tr><td>Position/Rotation/Scale 3D</td><td>專用的變換軌道</td><td>支援壓縮；用於匯入的 3D 模型動畫</td></tr>
+<tr><td>Blend Shape Track</td><td>動畫化 <code>MeshInstance3D</code> 的 morph targets</td><td>同樣可壓縮</td></tr>
+<tr><td>Method Call Track</td><td>在指定時間點以參數呼叫方法</td><td>在編輯器預覽期間會被抑制（安全考量）——直接對應 Unity 的 Animation Events</td></tr>
+<tr><td>Bezier Curve Track</td><td>沿手動編輯的曲線動畫化單一 float/屬性</td><td>在同一混合情境下<strong>不能與 property tracks 混用</strong>——這是硬性限制</td></tr>
+<tr><td>Audio Playback Track</td><td>在時間軸上放置音訊 clips</td><td>支援依混合權重調整音量</td></tr>
+<tr><td>Animation Playback Track</td><td>觸發其他 AnimationPlayer 的動畫</td><td>可編排多節點/過場動畫的時間軸</td></tr>
+</tbody>
+</table>
+
+<h3 id="godot-animationtree">Godot：AnimationTree</h3>
+
+<ul>
+  <li>其存在專門是為了解決 AnimationPlayer「僅能固定時長交叉淡化」的限制。<strong>不擁有動畫資料</strong>——它參照並驅動一個既有的 AnimationPlayer（在 Player 中製作 clips，在 Tree 中接上混合/狀態邏輯）。概念上，它把 Unity 打包在一起的 Animator（元件）+ Controller（資產）拆分成兩個節點。</li>
+  <li><strong>根節點類型</strong>：<code>AnimationNodeAnimation</code>（單一 clip）、<code>AnimationNodeBlendTree</code>（由 Blend2/Blend3/OneShot/TimeSeek/TimeScale/Transition 節點組成的圖表）、<code>AnimationNodeBlendSpace1D</code>/<code>BlendSpace2D</code>（在一條線/一個平面上對動畫點做參數化插值）、<code>AnimationNodeStateMachine</code>（具名狀態加轉場；可在狀態內巢狀 blend trees/spaces/其他狀態機）。</li>
+  <li><strong>狀態機轉場</strong>：切換模式有 <strong>Immediate</strong> / <strong>Sync</strong>（將新狀態快轉以對齊舊狀態的位置）/ <strong>At End</strong>；屬性有 <strong>Xfade Time</strong>、<strong>Xfade Curve</strong>、<strong>Reset</strong>、<strong>Priority</strong>（供尋路使用）、<strong>Advance Mode</strong>。<strong>Advance Condition/Expression</strong> 會依布林參數或任意表達式（例如 <code>is_walking &amp;&amp; !is_idle</code>）自動觸發轉場。<code>travel()</code> 可在狀態圖上尋路：
+    <pre><code>var state_machine = animation_tree["parameters/playback"]
+state_machine.travel("TargetState")</code></pre>
+  </li>
+  <li><strong>Blend tree 節點</strong>：<code>Blend2</code>/<code>Blend3</code>（2 至 3 個輸入的加權混合，附帶軌道過濾功能以支援分層——例如僅限上半身的疊加，這是 Godot 對 Unity Avatar Mask + Additive layers 的回應）、<code>OneShot</code>（播放一次後還原）、<code>TimeSeek</code>、<code>TimeScale</code>、<code>Transition</code>（輕量具名輸入切換器）。範例：
+    <pre><code>animation_tree["parameters/OneShot/request"] = AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE</code></pre>
+  </li>
+  <li><strong>Blend spaces</strong>：<code>BlendSpace2D</code> 會在 2D 平面上的動畫點之間自動三角化（Delaunay）並混合最鄰近的點——直接對應 Unity 的 2D Blend Tree。<strong>Sync modes</strong>（<code>None</code>/<code>Independent</code>/<code>Cyclic Mutable</code>/<code>Cyclic Constant</code>）控制非主導的點是否仍會推進時間；cyclic 模式要求每個混合點都必須是長度有限、不可變的普通 <code>AnimationNodeAnimation</code>（在這些模式下不能將子樹作為點來巢狀使用）。</li>
+  <li><strong>混合正確性要求</strong>：每個被動畫化的屬性都需要一個確定的靜止值（Skeleton3D 骨骼使用 <strong>Bone Rest</strong>；其他屬性預設為 0 或某個 <code>RESET</code> 動畫的第一個關鍵影格）。在給定動畫中未被追蹤的屬性，在混合期間會被視為處於靜止狀態。<strong>人形骨架應以 T-pose 匯入</strong>，使骨骼靜止姿勢處於中間範圍——這與 Unity 自身對 Avatar 對應所要求的 T-pose 直接對應。在混合動畫之間需要超過 180° 旋轉的骨骼，應改用 root motion，因為插值無法消解超過 180° 的旋轉方向歧義。</li>
+  <li><strong>Root Motion</strong>：指定某根骨骼作為 <strong>Root Motion Track</strong>；Godot 在正常播放期間會取消該骨骼的視覺變換。執行期 API 是主動拉取差量，而非 Unity 的推送式回呼模型：
+    <pre><code>animation_tree.get_root_motion_position()
+animation_tree.get_root_motion_position_accumulator()  # cumulative, for blended cases</code></pre>
+    再餵入 <code>CharacterBody3D.move_and_slide()</code>。概念上與 Unity 的 <code>OnAnimatorMove()</code> 模式相對應，但 Godot 的做法是明確的逐幀拉取，而不是引擎主動呼叫的回呼。</li>
+  <li><strong>共用資源注意事項</strong>：AnimationTree 內部的圖表節點是資源（resources）——如果同一個 AnimationTree 資源在多個場景實例間共享，修改其中一個實例的節點設定可能會外洩到全部實例。</li>
+  <li><strong>參數（Parameters）</strong>：透過屬性路徑暴露（<code>animation_tree["parameters/eye_blend/blend_amount"] = 1.0</code>），可在編輯器中檢視（Advance Expressions 除外，它們是以表達式文字存在，而非簡單的參數）。</li>
+</ul>
+
+<h3 id="godot-2d-skeletons">Godot：2D 骨架與 Cutout Animation（IK）</h3>
+
+<ul>
+  <li><strong>2D 骨架</strong>：透過權重繪製，以 <code>Skeleton2D</code>/<code>Bone2D</code> 階層來形變一個 <code>Polygon2D</code> 網格。此頁面不含 IK——2D IK 位於 Cutout Animation 之中。</li>
+  <li><strong>Cutout Animation</strong>：基於精靈圖的「人偶」綁定——透過樞轉的精靈圖階層、以「Make Bones」在精靈節點上建立骨架，以及用於藉由拖曳末端執行器（end-effector）擺姿勢的 <strong>2D IK 鏈</strong>。<strong>重要落差</strong>：2D IK 鏈<strong>僅限編輯器內使用，用於製作關鍵影格</strong>——這套系統中沒有執行期 IK 求解，這與 Unity 的 Animation Rigging 套件不同（該套件是獨立套件，尚未確認本專案是否使用）。</li>
+</ul>
+
+<hr>
+
+<h2 id="part-b">Part B —— 影片播放與電影/遊戲錄製</h2>
+
+<h3 id="unity-videoplayer">Unity：VideoPlayer</h3>
+
+<ul>
+  <li>將影片播放到 GameObject 的貼圖、Render Texture、相機平面，或目標顯示裝置上的元件，來源可以是 <strong>VideoClip 資產</strong>（由資產管線管理）或 <strong>URL</strong>（<code>file://</code>/<code>http://</code>，繞過資產管線——執行期的可連線性由你自行負責）。</li>
+  <li><code>Play()</code> 會在需要時自動準備（造成延遲）；若要立即播放，可提前呼叫 <code>Prepare()</code> 並等待 <code>prepareCompleted</code>。支援全景/360 度影片與播放同步 API。</li>
+  <li>編碼支援範圍廣泛，通常取決於平台/硬體解碼器（一般為 MP4/H.264 家族）——取代了較舊、已棄用的 MovieTexture 系統。</li>
+</ul>
+
+<h3 id="unity-recorder">Unity：螢幕/遊戲錄製（Unity Recorder）</h3>
+
+<ul>
+  <li><strong>Unity 核心中沒有內建的執行期錄製 API。</strong> <strong>Unity Recorder</strong> 套件（<code>com.unity.recorder</code>，透過 Package Manager 安裝）是標準工具：Movie Recorder（H.264 MP4、VP9 WebM、ProRes QuickTime）、Image Sequence、Animation Clip、GIF 及 Audio 錄製器。</li>
+  <li><strong>僅限編輯器使用</strong>——在編輯器的 Play 模式下可運作，但<strong>在獨立建置版本中無法運作</strong>。不能用於出貨後的遊戲內/玩家端錄製。</li>
+</ul>
+
+<h3 id="godot-videostreamplayer">Godot：VideoStreamPlayer</h3>
+
+<ul>
+  <li>用於影片播放的節點。<strong>格式支援範圍狹窄且是刻意為之</strong>：實際上僅支援 Ogg 容器（偏好 <code>.ogv</code>）中的 <strong>Ogg Theora</strong> 影片（+ 選用的 Ogg Vorbis 音訊）。<strong>基於軟體專利原因排除了 H.264/H.265</strong>（這是授權層面的決策，而非技術限制）；<strong>WebM 支援已在 Godot 4.0 中移除</strong>（維護負擔考量）；<strong>因缺乏廣泛的 GPU 解碼支援而避開 AV1</strong>。Theora 解碼<strong>僅限 CPU</strong>，限制了實際可用的解析度（桌面版大約 1080p30，行動裝置/網頁版大約 720p30 或更低，作為粗略上限）。</li>
+  <li>不支援 URL 串流——檔案必須是本機/已匯入的。音訊最多下混為立體聲。</li>
+  <li><strong>遷移影響</strong>：既有的 MP4/H.264 影片資產需要轉碼為 Ogg Theora，相較於 Unity 通常採用硬體解碼的格式，畫質/效能上限預期會下降。</li>
+</ul>
+
+<h3 id="godot-movie-maker">Godot：Movie Maker 模式</h3>
+
+<ul>
+  <li>一個<strong>非即時、確定性的逐影格</strong>渲染器，輸出到影片檔案——明確地說<strong>不是</strong>通用的遊戲畫面錄製工具（文件中建議改用 OBS Studio/SimpleScreenRecorder 來滿足該用途）。用途：預告片、高品質預先渲染的過場動畫，以及在負載下不受掉影格/音訊不同步問題困擾的確定性擷取，而這些問題常見於即時錄製。</li>
+  <li>透過編輯器的膠捲圖示啟用（每次工作階段都需要重新啟用），或透過 CLI：<code>godot --path /path/to/project --write-movie output.avi</code>（也適用於已匯出的建置版本，只是無法在執行期切換）。</li>
+  <li>輸出格式：<strong>OGV</strong>（Theora+Vorbis，最佳的檔案大小/畫質比，僅限編輯器建置版本，無法在瀏覽器中播放）、<strong>AVI</strong>（MJPEG+PCM，編碼速度快，有 4 GB 上限）、<strong>PNG 序列 + WAV</strong>（無損，用於外部合成，支援透明度）。</li>
+  <li>必須乾淨地結束（關閉視窗／呼叫 <code>get_tree().quit()</code>／使用 AnimationPlayer 的「Movie Quit On Finish」）——強制關閉會損毀 AVI/WAV 的檔頭。提供 <code>OS.has_feature("movie")</code>，讓指令碼能在擷取期間切換成即時渲染時太慢、只有擷取時才可用的高品質設定。由於擷取速度不受即時限制約束，因此支援超取樣（supersampling）。</li>
+</ul>
+
+<p id="video-comparison"><strong>影片/電影比較表：</strong></p>
+
+<table>
+<thead>
+<tr><th>Unity</th><th>Godot</th><th>備註</th></tr>
+</thead>
+<tbody>
+<tr><td><code>VideoPlayer</code>（VideoClip 或 URL；編碼範圍廣，通常為硬體解碼）</td><td><code>VideoStreamPlayer</code>（僅限 Ogg Theora <code>.ogv</code>，CPU 解碼）</td><td>移植既有影片資產時，會產生真正的轉碼成本以及解析度上限下降</td></tr>
+<tr><td>Unity Recorder 套件（僅限編輯器，不含於建置版本）</td><td>Movie Maker 模式（編輯器 + CLI，確定性，非即時）</td><td><strong>兩者都不是內建的遊戲內/玩家端錄製工具</strong>——這是兩個引擎之間的對等狀態，而非遷移落差</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2 id="comparison-mapping">比較／對應表（角色動畫）</h2>
+
+<table>
+<thead>
+<tr><th>Unity</th><th>Godot</th><th>備註</th></tr>
+</thead>
+<tbody>
+<tr><td><code>AnimationClip</code></td><td><code>Animation</code> 資源（存放在 Animation Library 中）</td><td>原始關鍵影格資料</td></tr>
+<tr><td><code>Animator</code> 元件 + Animator Controller 資產</td><td><code>AnimationPlayer</code> + <code>AnimationTree</code></td><td>Unity 將播放與邏輯捆綁在一個元件上，並參照一個資產；Godot 則將資料（Player）與混合/狀態邏輯（Tree）拆分到兩個節點</td></tr>
+<tr><td>Controller 狀態機</td><td><code>AnimationNodeStateMachine</code></td><td>兩者皆有：具名狀態、轉場、條件、類似「任意狀態」的全域中斷（Unity：Any State 節點；Godot：任何狀態都可以接一條轉場到它）</td></tr>
+<tr><td>參數（Float/Int/Bool/Trigger）+ 轉場條件（Conditions）</td><td>AnimationTree 的 <code>parameters/...</code> 屬性 + Advance Condition/Expression</td><td>Godot 基於表達式的條件比 Unity 固定的參數比較更為靈活（可寫任意布林表達式）</td></tr>
+<tr><td>Blend Tree（1D/2D/Direct）</td><td><code>AnimationNodeBlendSpace1D</code>/<code>BlendSpace2D</code>、<code>AnimationNodeBlendTree</code>（<code>Blend2</code>/<code>Blend3</code>）</td><td>概念相近，圖表形狀不同</td></tr>
+<tr><td>Animation Layers（Override/Additive + Avatar Mask）</td><td><code>Blend2</code>/<code>Blend3</code> 搭配軌道過濾，於 blend graph 中組合而成</td><td>Godot 沒有像 Unity Animator Layers 面板那樣的一級「圖層清單」UI——分層是透過圖表組合來達成</td></tr>
+<tr><td>Avatar 系統（人形重定向）</td><td>Godot 4.x 的重定向/骨骼對應功能</td><td><strong>此研究階段尚未確認</strong>——需要專門的後續追蹤</td></tr>
+<tr><td>Root Motion（<code>OnAnimatorMove</code> 回呼、每個 clip 的烘焙設定）</td><td>Root Motion Track + <code>get_root_motion_*_accumulator()</code> → <code>CharacterBody3D.move_and_slide()</code></td><td>Godot：明確的逐幀拉取式 API，相對於 Unity 由引擎主動呼叫的回呼——概念相同，控制流方向相反</td></tr>
+<tr><td>Animation Events（clip 內嵌的方法呼叫）</td><td>Method Call Track</td><td>直接對應；Godot 的版本在編輯器預覽期間會被抑制</td></tr>
+<tr><td>Legacy <code>Animation</code> 元件（命令式 Play/CrossFade）</td><td>（沒有獨立的「legacy」系統）</td><td>Godot 單獨的 <code>AnimationPlayer</code>（不搭配 <code>AnimationTree</code>）本身就已涵蓋 Legacy 的簡單/輕量用途</td></tr>
+<tr><td>Animation Rigging 套件（執行期 IK，若有使用）</td><td>Cutout Animation 的 2D IK（<strong>僅限編輯器</strong>，無執行期求解）</td><td>若專案需要執行期 IK，這是一個真正的落差——需確認使用情況</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2 id="qa">回答可能會被問到的問題</h2>
+
+<p><strong>1. 典型 Mecanim 設定的直接遷移對應是什麼？</strong><br>
+<code>AnimationClip</code> → <code>Animation</code> 資源；<code>Animator</code>+Controller → <code>AnimationPlayer</code>+<code>AnimationTree</code>；Controller 的狀態機 → <code>AnimationNodeStateMachine</code>；blend trees → <code>AnimationNodeBlendSpace1D/2D</code> 或 <code>Blend2/Blend3</code>；參數 → AnimationTree 的 <code>parameters/...</code> 路徑。</p>
+
+<p><strong>2. 那仍在使用 Legacy <code>Animation</code> 元件的專案呢？</strong><br>
+在 Godot 中沒有獨立的「legacy」概念需要保留——一個不搭配 <code>AnimationTree</code> 的普通 <code>AnimationPlayer</code> 就已經涵蓋了簡單、無混合、由指令碼驅動的播放，這正是 Legacy 過去的用途。在這方面的遷移，會比 Mecanim 更豐富的功能集要來得直接許多。</p>
+
+<p><strong>3. Godot 是否支援像 Unity Avatar 系統那樣的人形重定向？</strong><br>
+此研究階段尚未確認——這需要一個專門的後續追蹤，因為如果本專案在多個比例不同的人形角色之間共享動畫 clips，這會是一項重要功能。</p>
+
+<p><strong>4. Root motion 如何延續過去？</strong><br>
+概念上是直接對應的——兩個引擎都支援由動畫驅動的角色移動——但控制流方向相反：Unity 每一幀透過 <code>OnAnimatorMove()</code> 將差量推送給你的指令碼；Godot 則要求你自行透過 <code>get_root_motion_*_accumulator()</code> 拉取差量，再餵入 <code>CharacterBody3D.move_and_slide()</code>。</p>
+
+<p><strong>5. 影片資產需要做哪些變更？</strong><br>
+任何既有的 MP4/H.264（或 WebM）影片都需要轉碼為 Ogg Theora（<code>.ogv</code>）——Godot 的 <code>VideoStreamPlayer</code> 不支援 H.264/H.265（專利原因）或 WebM（4.0 中已移除），而且 Theora 解碼僅限 CPU，相較於 Unity 通常採用硬體解碼的播放方式，這會限制實際可用的解析度/影格率。</p>
+
+<p><strong>6. 兩邊是否都有遊戲內錄製功能？</strong><br>
+兩邊都沒有。Unity Recorder 僅限編輯器使用（無法用於建置版本）；Godot 的 Movie Maker 模式是確定性、非即時的擷取工具，同樣不是即時的遊戲錄製工具。如果專案需要面向玩家的錄製功能，不論使用哪個引擎，都需要自訂或第三方解決方案。</p>
+
+<h2 id="follow-ups">後續追蹤事項／待確認事項</h2>
+<ul>
+  <li>確認本專案實際使用哪一種（或哪幾種）Unity 動畫系統——僅 Mecanim、僅 Legacy，或是混合使用——因為這會改變 Legacy 專屬遷移指引的適用程度。</li>
+  <li>如果專案依賴 Unity 基於 Avatar 的 clip 重定向、在多個角色模型之間共用動畫，則需要專門研究 Godot 4.x 的人形重定向/骨骼對應能力（本輪尚未涵蓋）。</li>
+  <li>確認是否使用了搭配 Avatar Masks 的 Animation Layers（例如僅限上半身的疊加），並驗證 Godot 的 <code>Blend2</code>/<code>Blend3</code> 軌道過濾功能是否能涵蓋相同的細緻程度。</li>
+  <li>確認是否使用了 Unity 的 <strong>Synced Layers</strong> 功能（沿用某一層的狀態機結構但套用不同 clips）——本輪未找到已確認的 Godot 對應功能。</li>
+  <li>確認是否有任何地方需要執行期 2D IK——Godot 的 Cutout Animation IK 僅限編輯器使用（製作關鍵影格的輔助工具），並非執行期求解器，若專案在執行期依賴 Unity 的 Animation Rigging 套件，這會是一個真正的落差。</li>
+  <li>具體確認 root motion 的使用情況，包括任何基於 <code>OnAnimatorMove</code>、與 NavMeshAgent 或物理系統調和的邏輯，因為這部分邏輯需要圍繞 Godot 的拉取式累加器 API 重新架構。</li>
+  <li>盤點既有影片資產的編碼/解析度——這會決定 Theora 轉碼的範圍，以及 CPU 解碼的解析度上限對本專案的使用情境而言是否可接受。</li>
+  <li>確認專案是否需要遊戲內/面向玩家的影片或遊戲錄製功能——因為兩個引擎都未內建此功能，不論選哪個引擎都需要同類型的自訂/第三方解決方案（這不是遷移特有的落差）。</li>
+  <li>確認是否使用了 Unity 的 Playables API 來實現超出 Animator Controller 所提供範圍的程式化動畫圖表——本輪未找到 Godot 對應功能；若有依賴，需要另外研究。</li>
+</ul>
+
+</div>
+</body>
+</html>

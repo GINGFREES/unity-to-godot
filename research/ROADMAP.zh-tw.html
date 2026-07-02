@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unity → Godot 研究路線圖</title>
+<style>
+  :root {
+    color-scheme: light;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    background: #fafafa;
+    color: #1f2328;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Helvetica, Arial, sans-serif;
+    line-height: 1.75;
+  }
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+  h1 {
+    font-size: 1.9rem;
+    border-bottom: 2px solid #d0d7de;
+    padding-bottom: 0.4em;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 1.4rem;
+    margin-top: 2.2em;
+    border-bottom: 1px solid #d0d7de;
+    padding-bottom: 0.3em;
+  }
+  h3 {
+    font-size: 1.15rem;
+    margin-top: 2em;
+    color: #0b3d91;
+  }
+  p {
+    margin: 0.8em 0;
+  }
+  ul {
+    padding-left: 1.4em;
+  }
+  li {
+    margin: 0.4em 0;
+  }
+  li > ul {
+    margin-top: 0.4em;
+  }
+  code {
+    background: #f0f2f5;
+    border: 1px solid #e0e3e8;
+    border-radius: 4px;
+    padding: 0.1em 0.4em;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.92em;
+  }
+  a {
+    color: #0969da;
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  strong {
+    font-weight: 700;
+  }
+  em {
+    font-style: italic;
+  }
+  .comment-block {
+    background: #f6f8fa;
+    border: 1px dashed #d0d7de;
+    border-radius: 6px;
+    padding: 12px 16px;
+    color: #57606a;
+    font-size: 0.92em;
+    white-space: pre-wrap;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid #e0e3e8;
+    margin: 2.4em 0;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Unity → Godot 研究路線圖</h1>
+
+<p>橫跨所有技術研究的重點索引。每項技術在 <code>research/</code> 底下都有自己的資料夾，內含 <code>research.md</code>（深入研究）、<code>SKILL.md</code>（里程碑格式範本）與 <code>MILESTONE.md</code>（實際的階段／步驟）。本檔案只保留<em>重點摘要</em>——完整細節請至各資料夾查閱。此路線圖是用來建構頂層 <code>CLAUDE.md</code> 的來源文件。</p>
+
+<h2>本 repo 的組織方式</h2>
+<ul>
+  <li><code>research/&lt;technology&gt;/research.md</code> — Unity 端 + Godot 端的技術比較，以及官方文件連結。</li>
+  <li><code>research/&lt;technology&gt;/SKILL.md</code> — 共用範本，定義里程碑文件需要哪些章節。</li>
+  <li><code>research/&lt;technology&gt;/MILESTONE.md</code> — 遷移該項技術的具體階段／步驟／風險。</li>
+  <li>不會直接讀取實際的 Unity 專案檔案——技術使用情況是透過對話方式引導確認，因為 Claude 無法取得專案檔案。</li>
+</ul>
+
+<h2>技術項目</h2>
+
+<h3>1. AssetBundles / Addressables → PCKPacker / Resource Packs</h3>
+<ul>
+  <li>資料夾：<a href="assetbundles-addressables/">research/assetbundles-addressables/</a></li>
+  <li>重點：
+    <ul>
+      <li>Godot 沒有官方對應 Addressables 的功能；Godot 只有低階的 <code>PCKPacker</code> + <code>ProjectSettings.load_resource_pack()</code> 這種基本工具。</li>
+      <li>預期做法是在 <code>.pck</code> 檔案之上客製化一套類似 bundle 的系統——建立一層薄的自訂層，而不是重新發明打包機制。</li>
+      <li>將自訂層（目錄／版本控管）的範圍限縮在專案實際會用到的功能——完全對齊 Addressables 的所有能力可能是過度設計。</li>
+      <li>陷阱：<code>.pck</code> 檔案會在相同的 <code>res://</code> 路徑上靜默覆蓋既有資源。</li>
+      <li>狀態：研究已完成；專案實際使用情境（遠端目錄？簡單的延遲載入？）尚待確認——詳見 MILESTONE.md 的「Open Risks」。</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>2. UPM Custom Packages → GodotEnv</h3>
+<ul>
+  <li>資料夾：<a href="upm-custom-packages-vs-godotenv/">research/upm-custom-packages-vs-godotenv/</a></li>
+  <li>重點：
+    <ul>
+      <li>Godot 沒有官方對應 UPM 的功能；Godot 內建的 Asset Library 僅能在編輯器內手動操作，沒有以 manifest 驅動、可釘選版本／處理遞移依賴的系統。</li>
+      <li>GodotEnv（社群專案，由 chickensoft-games 維護）是最接近的替代方案——同時透過 <code>addons.json</code> 處理 Godot 版本管理與 addon 依賴管理。</li>
+      <li>GodotEnv 的來源只支援 git／本機／zip——沒有私有註冊表（private registry）的概念，因此若需要私有的 UPM scoped registry，得為每個套件規劃一套 git 託管方案。</li>
+      <li>遷移方式：每個 UPM package → 一個 Godot addon 資料夾（若有 Editor 工具則附上 <code>plugin.cfg</code>，若僅供 runtime 使用則為純腳本）+ 一筆 <code>addons.json</code> 條目。</li>
+      <li><code>.asmdef</code> 的編譯組件（compiled-assembly）隔離機制在 Godot 中沒有直接對應（Godot C# 通常是整個專案共用一個組件）。</li>
+      <li>狀態：研究已完成；需確認專案的套件是僅限編輯器用、僅限執行期用，還是混合型，以及是否使用私有註冊表——詳見 research.md 的後續追蹤事項。</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>3. SRP / URP → RenderingDevice / Compositor</h3>
+<ul>
+  <li>資料夾：<a href="srp-urp-vs-renderingdevice-compositor/">research/srp-urp-vs-renderingdevice-compositor/</a></li>
+  <li>重點：
+    <ul>
+      <li>Godot 沒有對應「完全可替換、可程式化的 SRP pipeline 物件」這種概念——Godot 的渲染後端（Forward+／Mobile／Compatibility）是固定的專案設定，而非可插拔的資源（asset）。</li>
+      <li>與「URP + Renderer Features」風格客製化最接近的對應是 <code>Compositor</code> + <code>CompositorEffect</code>——但這仍明確標示為實驗性、且仍在持續發展中。</li>
+      <li><code>RenderingDevice</code> 才是真正的低階逃生艙（接近 Vulkan 層級），但會完全繞過場景圖（scene graph），且需要具備一定的 Vulkan 知識——比 Unity 的 <code>ScriptableRenderContext</code> 低階許多。</li>
+      <li>真正客製化（非 URP）的 SRP 沒有直接的遷移對象——可選方案是大規模改用 RenderingDevice 重寫，或是將邏輯改以 Compositor effects 的形式表達在 Godot 內建渲染器上。</li>
+      <li>狀態：研究已完成；需確認專案使用的是標準 URP、URP + 自訂 Renderer Features，還是完全自訂的 SRP／HDRP——這將決定渲染遷移難度的等級。</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>4. DOTween → Tween</h3>
+<ul>
+  <li>資料夾：<a href="dotween-vs-tween/">research/dotween-vs-tween/</a></li>
+  <li>重點：
+    <ul>
+      <li>Godot 的 <code>Tween</code> 是內建在引擎中的——不需要第三方 asset，且涵蓋相同的核心範圍（屬性補間、序列化、緩動／過渡效果、迴圈、回呼）。</li>
+      <li>DOTween 單一的 <code>Ease</code> enum 在 Godot 中拆分成 <code>TransitionType</code> + <code>EaseType</code> 兩者——遷移時需要一份對照表。</li>
+      <li>DOTween 的 <code>LoopType.Yoyo</code>（原生乒乓式往返）與 Godot 的 <code>set_loops()</code> 之間的對應關係尚未確認——列為後續追蹤事項。</li>
+      <li>DOTween 的 6 個生命週期回呼（OnStart／OnComplete／OnKill／OnPlay／OnPause／OnRewind）與 Godot 的 <code>finished</code>／<code>loop_finished</code>／<code>step_finished</code> 訊號並非一對一對應——部分情況改用 <code>tween_callback()</code> 步驟來表達會更合適。</li>
+      <li>DOTween Pro 的進階功能（螺旋補間、punch／shake、2D Toolkit）在 Godot 中沒有內建對應——若有使用，需手動以 <code>tween_method()</code> 實作。</li>
+      <li>狀態：研究已完成；需確認 Yoyo 迴圈的對應關係、DOTween Pro 功能使用情況，以及是否涉及自訂數值型別的 plugin。</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>5. Coroutines / Async-Await / UniTask → GDScript <code>await</code></h3>
+<ul>
+  <li>資料夾：<a href="coroutines-async-unitask-vs-gdscript-await/">research/coroutines-async-unitask-vs-gdscript-await/</a></li>
+  <li>重點：
+    <ul>
+      <li>Unity 有三種並存的非同步機制（Coroutines、自 2023.1+ 起原生支援的 async／<code>Awaitable</code>，以及第三方的 UniTask）；GDScript 只有一種——<code>await</code> + 訊號（signals）——就涵蓋了這三者的角色。</li>
+      <li>Godot 中不需要類似 UniTask 的函式庫——<code>await</code> 已是原生、零框架額外負擔，且與畫格（frame）整合。</li>
+      <li>最大的遷移風險：Unity 的 coroutine 會在其 MonoBehaviour 被銷毀時自動停止；GDScript 的 <code>await</code> 沒有自動對應的機制——在已釋放（freed）的節點上恢復 await 是常見的執行期錯誤，需要明確的防護模式（guard pattern）。</li>
+      <li><code>StopCoroutine()</code> 與 <code>CancellationToken</code> 在 GDScript 中都沒有直接對應——需要手動實作取消模式。</li>
+      <li>狀態：研究已完成；需盤點每個呼叫點實際使用 Unity 三種機制中的哪一種，確認 Unity 版本（以判斷 <code>Awaitable</code> 是否可用），並驗證 Godot 每一畫格對應的 await 訊號確切名稱。</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>6. UniRx → 原生 Signal／await（而非 GodotRx）</h3>
+<ul>
+  <li>資料夾：<a href="unirx-vs-godotrx-signal-await/">research/unirx-vs-godotrx-signal-await/</a></li>
+  <li>重點：
+    <ul>
+      <li>GodotRx（RxPY 的 GDScript 移植版）<strong>並非</strong>建構在 Godot 原生的 <code>Signal</code> 系統之上——它是一套平行的事件框架，這代表在專案中與其他使用原生 signal 的部分之間會產生橋接開銷。</li>
+      <li>UniRx 的核心動機（coroutine 無法回傳數值／傳遞例外）在 GDScript 中已大致由原生的 <code>await</code> 解決，因此採用完整 Rx 層的大部分*理由*已不再適用。</li>
+      <li>UniRx 本身已被封存（2024 年 2 月）；其作者本人建議改用其後繼者 R3——這進一步印證不應照搬 UniRx 的完整介面。</li>
+      <li>GodotRx 自述尚未經過實戰考驗，且缺乏泛型（generics）支援——若將其作為基礎依賴，這是真實存在的風險。</li>
+      <li><strong>結論</strong>：使用者提出的做法（採用原生 <code>await</code> + <code>Signal</code>，僅針對實際會用到的運算子撰寫少量自訂工廠函式，略過 GodotRx）方向正確——已確認為建議做法，前提是專案中 UniRx 的使用範圍屬於有限的固定模式，而非深層鏈式管線（pipeline）。</li>
+      <li>狀態：研究與結論皆已完成；需盤點專案中實際使用 UniRx 運算子的深度，並確認是否依賴 <code>OnError</code>／例外傳遞語意（GDScript 中沒有直接對應機制）。</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>7. C# Iterators / LINQ Lazy Evaluation → Array</h3>
+<ul>
+  <li>資料夾：<a href="linq-lazy-evaluation-vs-godot-array/">research/linq-lazy-evaluation-vs-godot-array/</a></li>
+  <li>重點：
+    <ul>
+      <li>Godot 沒有原生的 <code>Set</code> 型別——<code>Array.has()</code>／<code>find()</code> 皆為 O(n)；<code>HashSet&lt;T&gt;</code>／LINQ 集合運算子（<code>Distinct</code>／<code>Union</code>／<code>Intersect</code>／<code>Except</code>）正確的遷移目標是「以 <code>Dictionary</code> 作為 set」（用 key 當作成員），而非 <code>Array</code>。</li>
+      <li>對於一般的集合轉換操作，<code>Array.filter()</code>／<code>map()</code>／<code>reduce()</code> 是 <code>Where()</code>／<code>Select()</code>／<code>Aggregate()</code> 可讀性不錯的替代方案，但它們是<strong>立即求值（eager）</strong>的——沒有延遲執行、沒有跨鏈的短路（short-circuit），也沒有像 LINQ 那樣「重新列舉會反映來源已變動內容」的語意。</li>
+      <li>自訂的惰性產生器（C# 的 <code>yield return</code>）在 GDScript 語言層級沒有直接對應——Godot 4 的 <code>await</code> 是以訊號為基礎的非同步機制，並非通用的惰性序列產生器。</li>
+      <li>在移植 <code>List&lt;T&gt;</code>／型別化的 C# 集合時，優先使用型別化的 <code>Array[T]</code> 或 Packed 陣列，而非未型別化的 <code>Array</code>，以取得效能與型別安全上的對等性。</li>
+      <li>LINQ 鏈式呼叫與 <code>Array</code> 的函式式方法相較於明確的迴圈都有實際的每次呼叫開銷——在高頻／每畫格路徑中兩者都應避免，這點對雙方都是對稱的建議。</li>
+      <li>狀態：研究與結論皆已完成；需確認專案實際程式碼中「set」所指的是集合抽象資料型別（ADT，→ Dictionary）還是一般集合（→ Array），以及 Godot 目前版本是否支援任何自訂迭代器協定（custom-iterator protocol）以實現惰性序列。</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>8. Shaders & GPU Instancing → Shaders & MultiMesh</h3>
+<ul>
+  <li>資料夾：<a href="shaders-gpu-instancing/">research/shaders-gpu-instancing/</a></li>
+  <li>重點：
+    <ul>
+      <li>Unity：GPU instancing 是每個 shader 各自的選用旗標（<code>#pragma multi_compile_instancing</code> + 巨集）——一般的 GameObject 會在渲染時自動、透明地批次處理。</li>
+      <li>Godot：instancing 是獨立的資源／節點型別（<code>MultiMesh</code>／<code>MultiMeshInstance3D</code>）——實例（instance）純粹是渲染資料（緩衝區索引），<strong>不是</strong>節點（Node）；沒有逐實例的腳本／物理／碰撞。</li>
+      <li>Godot 每實例的自訂資料上限為 4 個 float（<code>INSTANCE_CUSTOM</code>，以 Color 打包）——遠小於 Unity 型別化 instancing buffer 的容量。</li>
+      <li>關鍵遷移風險：若 Unity 中被 instance 化的 GameObject 同時帶有逐物件的遊戲邏輯（碰撞體／腳本），直接移植成 MultiMesh 會遺失這部分——需要採用「資料模型混合 + MultiMesh 僅負責渲染」的做法。</li>
+      <li>Godot 統一的單一著色語言（沒有類似 ShaderLab 的包裝層）與第 3 項相呼應——因為沒有可替換的自訂 pipeline 概念，所以也不需要在 shader 外再包一層 pipeline 抽象層。</li>
+      <li>狀態：研究與範例程式碼皆已完成；需確認被 instance 化的物件是否帶有逐物件的遊戲邏輯，實際使用了多少逐實例自訂資料，以及 instancing shader 鎖定的是哪一種 Unity 渲染管線（render pipeline）。</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>9. Audio (Unity) → Audio (Godot)</h3>
+<ul>
+  <li>資料夾：<a href="audio-unity-vs-godot/">research/audio-unity-vs-godot/</a></li>
+  <li>重點：
+    <ul>
+      <li>Godot 依空間維度將 <code>AudioSource</code> 拆分成不同的節點型別（<code>AudioStreamPlayer</code>／<code>AudioStreamPlayer2D</code>／<code>AudioStreamPlayer3D</code>），而不是用單一元件搭配 spatial-blend 設定。</li>
+      <li><code>AudioMixer</code> 群組在結構上對應到 Godot 的 audio bus 系統；<code>AudioClip</code> 對應到 <code>AudioStream</code>（Unity 原本就有的資料／播放器拆分方式相同）。</li>
+      <li>Godot 內建 <code>AudioStreamRandomizer</code>（隨機音訊片段 + 音高／音量變化）——Unity 通常需要自行手動實作這類功能。</li>
+      <li>Godot 文件明確記載了兩種具延遲補償（latency-compensated）的音訊同步方法（短音軌使用系統時鐘，長／連續音軌使用硬體時鐘）——對於節奏遊戲（rhythm-game）風格的需求是很有用的參考依據。</li>
+      <li>Web 匯出注意事項：Godot 的 reverb-bus 路由與 Doppler 效果在 Web 平台的預設 Sample 播放模式下無法運作，只有在 Stream 模式下才能運作。</li>
+      <li>狀態：研究已完成；需確認 Godot 對應 Unity AudioListener 的機制、其麥克風／音訊輸入 API、實際使用了哪些 AudioMixer 功能，以及專案是否以 Web 匯出為目標平台。</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>10. Animation (Mecanim/Legacy) → Animation (AnimationPlayer/AnimationTree)，以及 Video/Movie Recording</h3>
+<ul>
+  <li>資料夾：<a href="animation-unity-vs-godot/">research/animation-unity-vs-godot/</a></li>
+  <li>重點：
+    <ul>
+      <li>Unity 將播放與邏輯整合在 <code>Animator</code> + Controller asset 中；Godot 則拆分成 <code>AnimationPlayer</code>（原始資料）+ <code>AnimationTree</code>（混合／狀態邏輯）兩個節點。</li>
+      <li>核心概念大致能對應：Controller 狀態機 ↔ <code>AnimationNodeStateMachine</code>，Blend Trees ↔ <code>AnimationNodeBlendSpace1D/2D</code>／<code>Blend2</code>／<code>Blend3</code>，Animation Events ↔ Method Call Tracks，root motion 兩邊都有，但 Unity 是透過 <code>OnAnimatorMove()</code> 主動推送位移量（delta），而 Godot 需要透過 <code>get_root_motion_*_accumulator()</code> 主動拉取。</li>
+      <li>Legacy <code>Animation</code> 元件不需要另外對應的 Godot 元件——單純的 <code>AnimationPlayer</code>（不搭配 Tree）本身就已涵蓋這種簡單／命令式（imperative）的使用情境。</li>
+      <li>真正的落差：Unity 的類人型（humanoid）Avatar retargeting 目前尚未確認 Godot 有對應功能（需要另外進行專門的後續研究）；Godot 的 2D IK（Cutout Animation）僅限編輯器使用、沒有執行期求解功能，這點與 Unity 的 Animation Rigging package 不同。</li>
+      <li>Video：Godot 的 <code>VideoStreamPlayer</code> 只支援 Ogg Theora（<code>.ogv</code>）——不支援 H.264／H.265（專利因素）或 WebM（已於 4.0 移除）——因此現有的 MP4／H.264 素材需要轉碼，且 CPU 解碼的解析度上限也比 Unity 通常採用硬體解碼的 <code>VideoPlayer</code> 更低。</li>
+      <li>Movie／recording：兩個引擎都沒有內建、面向玩家／遊戲內使用的錄製功能——Unity Recorder 僅限編輯器使用，Godot 的 Movie Maker 模式是決定性（deterministic）／非即時（non-real-time）的——這屬於功能對等，並非遷移落差。</li>
+      <li>狀態：研究已完成（篇幅較大的一章，涵蓋兩個引擎的文件及多個相關子頁面）；仍有數項實際的後續追蹤事項，詳見下方。</li>
+    </ul>
+  </li>
+</ul>
+
+<div class="comment-block">後續的技術項目依相同格式加入於此：
+### N. &lt;Unity 技術&gt; → &lt;Godot 技術&gt;
+- 資料夾：research/&lt;slug&gt;/
+- 重點：
+  - ...
+  - 狀態：...
+</div>
+
+<h2>橫跨所有技術的待確認事項</h2>
+<ul>
+  <li>AssetBundles／Addressables：尚未確認專案是否依賴遠端目錄（remote catalog）更新，還是僅使用簡單的延遲載入（影響自訂層的範圍）。</li>
+  <li>UPM／GodotEnv：尚未確認自訂套件是僅限編輯器用、僅限執行期用，還是混合型；尚未確認是否有使用私有／scoped 的 UPM 註冊表。</li>
+  <li>SRP／URP：尚未確認專案使用的是標準 URP、URP + Renderer Features，還是完全自訂的 SRP／HDRP——這是渲染遷移難度中最關鍵的變數。</li>
+  <li>DOTween／Tween：尚未確認 Godot 的 <code>set_loops()</code> 是否原生支援 Yoyo／乒乓式往返；尚未確認 DOTween Pro 功能使用情況與自訂數值型別 plugin。</li>
+  <li>Coroutines／Async／UniTask 對 await：尚未確認各處實際使用 Unity 三種非同步機制中的哪一種；尚未確認 Godot 每畫格對應 await 訊號的確切名稱；在遷移任何依賴「銷毀即停止」行為的 coroutine 之前，需要先建立防護模式（destroy-guard pattern）。</li>
+  <li>UniRx 對 Signal／await：尚未確認專案中 UniRx 運算子使用的深度與廣度；尚未確認是否依賴 <code>OnError</code> 例外傳遞語意。</li>
+  <li>LINQ／Array：尚未確認專案中「set」的使用情境是指 Set 抽象資料型別（→ Dictionary）還是一般集合（→ Array）；尚未確認 Godot 目前版本對於惰性序列的自訂迭代器協定支援情況。</li>
+  <li>Shaders／GPU Instancing：尚未確認被 instance 化的物件是否帶有逐物件的遊戲邏輯（碰撞體／腳本）；尚未確認逐實例自訂資料量相對於 Godot 4-float 上限的情況；尚未確認目標 Unity 渲染管線為何。</li>
+  <li>Audio：尚未確認 Godot 對應的 AudioListener 機制與麥克風／音訊輸入 API；尚未確認實際使用了哪些 AudioMixer 功能；尚未確認節奏遊戲等級的同步需求；尚未確認 Web 匯出目標平台。</li>
+  <li>Animation：尚未確認專案使用的是 Mecanim、Legacy，還是兩者皆有；尚未確認 Godot 4.x 的類人型（humanoid）retargeting 能力（需要另外進行專門的後續研究）；尚未確認 Animation Layers／Avatar Masks、Synced Layers、執行期 2D IK、Playables API，以及 root-motion／NavMeshAgent 協調邏輯的使用情況；尚未確認現有影片素材的編碼格式（Theora 轉碼範圍），以及是否真的需要遊戲內錄製功能。</li>
+</ul>
+
+</div>
+</body>
+</html>

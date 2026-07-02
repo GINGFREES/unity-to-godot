@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>UniRx（Unity）vs GodotRx／原生 Signal + await（Godot）</title>
+<style>
+  :root {
+    color-scheme: light;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #f7f7f8;
+    color: #1f2328;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", Helvetica, Arial, sans-serif;
+    line-height: 1.75;
+  }
+  .content {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 5rem;
+  }
+  h1 {
+    font-size: 1.9rem;
+    border-bottom: 3px solid #2f6feb;
+    padding-bottom: 0.6rem;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+  }
+  h2 {
+    font-size: 1.4rem;
+    margin-top: 2.6rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid #d8dee4;
+    color: #14315c;
+  }
+  h3 {
+    font-size: 1.1rem;
+    margin-top: 1.8rem;
+    color: #14315c;
+  }
+  p {
+    margin: 0.9rem 0;
+  }
+  ul, ol {
+    padding-left: 1.6rem;
+  }
+  li {
+    margin: 0.45rem 0;
+  }
+  a {
+    color: #2f6feb;
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    background-color: #eef0f3;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.92em;
+  }
+  pre {
+    background-color: #1e2530;
+    color: #e6e8eb;
+    padding: 1rem 1.2rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    line-height: 1.55;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    font-size: 0.88em;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1.2rem 0;
+    font-size: 0.95rem;
+  }
+  th, td {
+    border: 1px solid #d8dee4;
+    padding: 0.65rem 0.8rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background-color: #eef2fa;
+    font-weight: 600;
+  }
+  tr:nth-child(even) td {
+    background-color: #fafbfc;
+  }
+  strong {
+    color: #12294f;
+  }
+  blockquote {
+    border-left: 4px solid #d8dee4;
+    margin: 1rem 0;
+    padding: 0.2rem 1rem;
+    color: #57606a;
+  }
+</style>
+</head>
+<body>
+<div class="content">
+
+<h1>UniRx（Unity）vs GodotRx／原生 Signal + await（Godot）</h1>
+
+<h2>官方資料來源</h2>
+<ul>
+  <li>UniRx（Unity，已封存）：<a href="https://github.com/neuecc/unirx">https://github.com/neuecc/unirx</a></li>
+  <li>GodotRx（Godot 4，RxPY 的 GDScript 移植版）：<a href="https://github.com/Neroware/GodotRx">https://github.com/Neroware/GodotRx</a></li>
+  <li>Godot Signal 內建型別：<a href="https://docs.godotengine.org/zh-tw/4.x/classes/class_signal.html">https://docs.godotengine.org/zh-tw/4.x/classes/class_signal.html</a></li>
+  <li>提供的兩個 <code>share.google/aimode/...</code> 連結**無法擷取**——它們會重新導向到需要登入的 Google AI Mode 工作階段，而非公開頁面。未納入本次研究；若其中有值得記錄的特定內容，需要手動貼入。</li>
+</ul>
+
+<h2>Unity：UniRx</h2>
+<ul>
+  <li><strong>用途</strong>：為 Unity 提供 Reactive Extensions（Rx）——解決了 Coroutine 具體的限制：「Coroutine 無法回傳任何值」以及「無法處理例外狀況」，這會導致程式碼緊密耦合。</li>
+  <li><strong>核心概念</strong>：<code>Observable</code>（事件串流）、<code>Subject</code>（同時身兼來源與訂閱者，用於手動發布）、LINQ 風格的運算子（<code>Where</code>、<code>Select</code>、<code>Merge</code>、以時間為基礎的運算子）。</li>
+  <li><strong>Unity 整合</strong>：
+    <ul>
+      <li><code>MainThreadScheduler</code>——讓操作保持在主執行緒上，並遵循 <code>Time.timeScale</code>。</li>
+      <li>Coroutine 橋接——<code>FromCoroutine()</code> / <code>ToYieldInstruction()</code> 用於在 <code>IEnumerator</code> 與 <code>Observable</code> 之間互相轉換。</li>
+      <li><code>ObservableTriggers</code>——將 MonoBehaviour 的生命週期、UI 事件與物理回呼公開為 observable。</li>
+      <li>「MicroCoroutine」——一種自訂排程器技術，號稱比標準 Unity coroutine 疊代快約 10 倍。</li>
+    </ul>
+  </li>
+  <li><strong>記憶體管理</strong>：訂閱必須手動釋放（dispose），或透過 <code>.AddTo(gameObject)</code> 綁定，以避免記憶體洩漏。</li>
+  <li><strong>現況</strong>：**已於 2024 年 2 月封存**——作者明確建議改為遷移至其後繼者 **Cysharp/R3**，而非繼續使用 UniRx。</li>
+</ul>
+
+<h2>Godot：GodotRx</h2>
+<ul>
+  <li><strong>用途</strong>：將 ReactiveX 的概念帶入 Godot 4／GDScript——算是 **RxPY**（Python 版 Rx 實作）相當直接的移植版，選擇 RxPY 的原因是 GDScript 與 Python 在語法上相似。</li>
+  <li><strong>核心 API</strong>：以 <code>Observable</code> 作為主要建構元件，可鏈式呼叫的 <code>map()</code> / <code>filter()</code>，另外還有 <code>ReactiveProperty</code>（單一值的 observable，於數值變更時發出事件）、<code>ReactiveCollection</code>（多值版本）、<code>oftype()</code>、<code>from_coroutine()</code>。透過 <code>GDRx</code> 單例（singleton）搭配 <code>just()</code>、<code>of()</code>、<code>concat_streams()</code> 等工廠方法存取。</li>
+  <li><strong>架構</strong>：明確表示**並非**建構在 Godot 原生的 <code>Signal</code> 系統之上——它是一套獨立的反應式框架，另外自行與 Godot 的排程器／coroutine 機制整合。</li>
+  <li><strong>成熟度</strong>：v1.0.2（2025 年 7 月），141 顆星／8 個 fork——中等但仍屬年輕的專案。README 本身也警告：「**此函式庫尚未在實際場景中經過充分的實戰測試。**」文件內容主要仰賴 RxPY 的參考文件，而非針對 Godot 的專屬說明。沒有正式的泛型（GDScript 的限制），改以執行期型別檢查來處理。</li>
+</ul>
+
+<h2>Godot：原生 Signal</h2>
+<ul>
+  <li><strong>用途</strong>：一種內建的 <code>Variant</code> 型別——Godot 原生的事件系統。已連接的 <code>Callable</code> 能夠「監聽並回應事件，而不需要彼此直接參照」。</li>
+  <li><strong>宣告／發出</strong>：在 GDScript 中以 <code>signal my_signal(args)</code> 宣告（在 C# 中則使用 <code>[Signal]</code> 屬性），透過 <code>emit()</code> 觸發。</li>
+  <li><strong>連接</strong>：<code>some_signal.connect(callable)</code>，搭配 <code>Callable.bind()</code> 進行部分應用（partial application）；<code>disconnect()</code>、<code>is_connected()</code>、<code>get_connections()</code> 則補齊了其餘 API。</li>
+  <li><strong><code>await</code> 互動方式</strong>：<code>await some_object.some_signal</code> 是原生的 GDScript 語法——會暫停目前的函式，直到該 signal 被觸發為止。這正是先前 <a href="../coroutines-async-unitask-vs-gdscript-await/research.md">coroutines-async-unitask-vs-gdscript-await</a> 條目已深入探討過的機制。</li>
+  <li><strong>注意事項</strong>：若已連接的物件被釋放（freed），連接會被靜默地遺失——這與先前針對 <code>await</code> 提出的整體性風險屬於同一類型的陷阱。</li>
+</ul>
+
+<h2>比較／對應關係</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Unity（UniRx）</th>
+      <th>Godot</th>
+      <th>備註</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Observable</code>/<code>Subject</code> + LINQ 運算子</td>
+      <td>原生 <code>Signal</code> + <code>await</code>，或 GodotRx 的 <code>Observable</code></td>
+      <td>Godot 並沒有單一一種「就是那個」的 Rx 對應方案——需要在原生原語與年輕的第三方移植版之間做選擇</td>
+    </tr>
+    <tr>
+      <td><code>FromCoroutine()</code>/<code>ToYieldInstruction()</code> 橋接</td>
+      <td>不需要——<code>await</code> 已經統一了類 coroutine 與具回傳值的非同步程式碼</td>
+      <td>UniRx 所解決的橋接問題，在 GDScript 中幾乎不存在</td>
+    </tr>
+    <tr>
+      <td><code>ObservableTriggers</code>（將生命週期／UI／物理事件包裝為 observable）</td>
+      <td>直接連接相關的原生 <code>Signal</code>（例如 <code>Node.tree_exited</code>、<code>Control</code> 的輸入 signal）</td>
+      <td>不需要額外的包裝層——這些在 Godot 中本來就已經是 signal</td>
+    </tr>
+    <tr>
+      <td><code>.AddTo(gameObject)</code>（物件銷毀時自動釋放）</td>
+      <td>手動防護（例如 <code>is_instance_valid()</code>），沒有自動化的對應機制</td>
+      <td>與先前針對 coroutine／await 已指出的落差相同</td>
+    </tr>
+    <tr>
+      <td>MicroCoroutine（相對於預設 coroutine 的效能最佳化）</td>
+      <td>原生 <code>Signal</code>/<code>await</code> 本身已是引擎層級，不需要 GDScript 層級的排程器</td>
+      <td>Godot 並不存在「coroutine 太慢，需要自訂排程器」這種 UniRx 想要解決的問題</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>提出的結論——判定</h2>
+<p><strong>提案</strong>：基於效能考量，直接使用原生的 <code>await</code> + <code>Signal</code>，並只在其上建立小型的、UniRx 風格的**工廠函式**（例如 throttle／debounce／merge 輔助函式）——而不是整套採用 GodotRx。</p>
+
+<p><strong>判定：方向正確，但有一項範圍上的但書。</strong></p>
+
+<p><strong>為什麼這個判斷站得住腳：</strong></p>
+<ol>
+  <li>GodotRx **並非**建構在原生 <code>Signal</code> 之上——它是一套以 GDScript 實作的平行事件系統。專案中其他地方的每一個原生 signal，都需要橋接進入 GodotRx 的 <code>Observable</code> 世界，這會增加額外負擔，也需要維護第二套心智模型。</li>
+  <li>UniRx 的核心動機——coroutine 無法回傳值也無法傳播例外——在 GDScript 中已經大致被原生的 <code>await</code> 解決了，它確實能回傳值，也能與一般的控制流程組合使用。因此，需要引入完整 Rx 層的許多*原因*其實並不適用於這裡。</li>
+  <li>UniRx 本身已被封存，其作者也明確將使用者導向其他方案（R3）。若在 Godot 中重新實作 UniRx 的完整介面，等於是在追逐一種連 Unity 自身生態系都已經放棄的設計模式。</li>
+  <li>GodotRx 自我表示尚未經過實戰測試，也缺乏泛型——對於一項基礎相依套件而言，這是實際存在的生產風險警訊。</li>
+</ol>
+
+<p><strong>但書：</strong></p>
+<p>如果該 Unity 專案對 UniRx 的使用範圍，僅限於一組可辨識、有限的模式（throttle、debounce、merge、combineLatest，以及類似 <code>Subject</code> 的手動發布包裝器），那麼上述做法就是正確的選擇。但如果程式碼庫中存在深度、大量鏈式串接的 Rx 管線（許多運算子組合在一起、自訂排程器），那麼把每個模式手工打造成一個個特製的工廠函式，就有可能自己演變成一套未經驗證、缺乏文件的迷你框架——在這種規模下，與其使用一次性的輔助函式，不如考慮在原生 <code>Signal</code> 之上（而非使用 GodotRx）手刻一個小型的 <code>Observable</code>/<code>Subject</code> 類別，同時仍然避開 GodotRx 那套獨立的事件系統。</p>
+
+<p><strong>建議：</strong></p>
+<ul>
+  <li>只要 UniRx 呼叫點很單純（單一訂閱、沒有運算子鏈式串接），就預設直接使用原生的 <code>Signal</code> + <code>await</code>。</li>
+  <li>針對專案中實際重複出現的運算子模式（不是整個 Rx 生態系——只挑實際會用到的那些），撰寫小型、具名的工廠函式來包裝原生 signal（例如一個回傳可供 await 之物件的 <code>debounce(signal, seconds)</code> 輔助函式），而不是採用 GodotRx。</li>
+  <li>除非下方的盤點結果顯示確實存在相當深度的 Rx 使用情境，足以正當化引入的成本，否則不要將 GodotRx 當作基礎相依套件——因為它自評「尚未經過實戰測試」，且與原生 <code>Signal</code> 相互獨立。</li>
+  <li>注意 GDScript 沒有 C# 風格的 <code>try</code>/<code>except</code> 例外處理機制——如果專案中 UniRx 的用法仰賴 <code>OnError</code> 的傳播語意，就需要一個明確的替代方案（錯誤碼／回傳值模式），而不是直接照搬移植。</li>
+</ul>
+
+<h2>後續追蹤／待日後驗證事項</h2>
+<ul>
+  <li>盤點專案中實際使用的 UniRx 運算子／模式（<code>Where</code>／<code>Select</code>／<code>Merge</code>／<code>Throttle</code>／<code>CombineLatest</code> 等之中哪些有用到，以及鏈式串接的深度如何）——這將決定「幾個工廠函式」是否真的足夠，或者是否需要一個小型的自訂 Observable 類別。</li>
+  <li>檢查是否有任何程式碼特別依賴 UniRx 的例外傳播機制（<code>OnError</code>）——GDScript 沒有直接對應的例外機制。</li>
+  <li>如果那兩個被擋下的 <code>share.google/aimode</code> 連結內容重要，之後需要重新檢視——由於這些連結無法以 URL 方式擷取，需要直接手動貼入內容。</li>
+</ul>
+
+</div>
+</body>
+</html>

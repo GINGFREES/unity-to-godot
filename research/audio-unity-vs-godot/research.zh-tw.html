@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>音訊（Unity）vs 音訊（Godot）</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background: #f7f7f8;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    color: #1f2328;
+    line-height: 1.75;
+  }
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+  h1 {
+    font-size: 1.9rem;
+    border-bottom: 2px solid #d0d7de;
+    padding-bottom: 0.5rem;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 1.4rem;
+    margin-top: 2.5rem;
+    border-bottom: 1px solid #d0d7de;
+    padding-bottom: 0.3rem;
+  }
+  h3 {
+    font-size: 1.1rem;
+    margin-top: 1.8rem;
+  }
+  p {
+    margin: 0.8rem 0;
+  }
+  ul {
+    padding-left: 1.5rem;
+  }
+  li {
+    margin: 0.5rem 0;
+  }
+  code {
+    background: #eef0f2;
+    border-radius: 4px;
+    padding: 0.15em 0.4em;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.92em;
+  }
+  a {
+    color: #0969da;
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1.2rem 0;
+    font-size: 0.95rem;
+  }
+  th, td {
+    border: 1px solid #d0d7de;
+    padding: 0.6rem 0.8rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: #eef0f2;
+  }
+  tr:nth-child(even) td {
+    background: #fbfbfc;
+  }
+  strong {
+    font-weight: 600;
+  }
+  em {
+    color: #57606a;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>音訊（Unity）vs 音訊（Godot）</h1>
+
+<h2>官方資料來源</h2>
+<ul>
+  <li>Unity 音訊總覽：<a href="https://docs.unity3d.com/6000.4/Documentation/Manual/AudioOverview.html">https://docs.unity3d.com/6000.4/Documentation/Manual/AudioOverview.html</a></li>
+  <li>Godot 音訊串流：<a href="https://docs.godotengine.org/zh-tw/4.x/tutorials/audio/audio_streams.html">https://docs.godotengine.org/zh-tw/4.x/tutorials/audio/audio_streams.html</a></li>
+  <li>Godot 音訊同步：<a href="https://docs.godotengine.org/zh-tw/4.x/tutorials/audio/sync_with_audio.html">https://docs.godotengine.org/zh-tw/4.x/tutorials/audio/sync_with_audio.html</a></li>
+  <li><code>share.google/aimode/5eh0WFrMHH7B3IkNp</code> — <strong>無法取得</strong>（與本研究系列先前的 aimode 連結一樣，需要已登入的工作階段才能重新導向）。未納入本文；若內容重要，請直接貼上內容。</li>
+</ul>
+
+<h2>Unity：音訊系統</h2>
+<ul>
+  <li><strong>AudioSource / AudioListener</strong>：聲音由物件上的 <code>AudioSource</code> 元件發出，並由 <code>AudioListener</code>（通常掛在 Camera 上）接收——這種來源／聽者的分離架構正是驅動空間音訊模擬的基礎。</li>
+  <li><strong>AudioClip</strong>：匯入的音訊資料容器。支援單聲道、立體聲及多聲道；可接受的格式包括 AIFF、WAV、MP3、Ogg，以及 tracker module 格式（.xm、.mod、.it、.s3m）。</li>
+  <li><strong>AudioMixer</strong>：用於合併多個音源、套用效果與進行母帶處理的混音圖。</li>
+  <li><strong>空間／3D 音訊</strong>：在 <code>AudioSource</code> 與 <code>AudioListener</code> 之間進行基於距離的衰減與位置模擬；並支援基於兩者相對速度的 <strong>Doppler Effect</strong>（都卜勒效應）。</li>
+  <li><strong>回音／殘響的限制</strong>：Unity <strong>無法根據場景幾何自動計算回音／殘響</strong>——必須透過 Audio Filters 或 Reverb Zones 手動實作。</li>
+  <li><strong>Microphone 類別</strong>：透過腳本從可用的麥克風進行即時音訊錄製。</li>
+</ul>
+
+<h2>Godot：音訊系統</h2>
+<ul>
+  <li><strong>播放節點依空間維度區分</strong>（不同於 Unity 使用單一 <code>AudioSource</code> 加上空間混合設定的方式）：
+    <ul>
+      <li><code>AudioStreamPlayer</code> — 無位置性，輸出至任意音訊匯流排。</li>
+      <li><code>AudioStreamPlayer2D</code> — 2D 位置性；根據與螢幕邊緣的距離進行立體聲聲像調整；<code>Area2D</code> 可將其輸出重新導向至特定匯流排。</li>
+      <li><code>AudioStreamPlayer3D</code> — 3D 位置性；依設定可支援立體聲／5.1／7.1 環繞音效；<code>Area3D</code> 同樣可控制其路由。</li>
+    </ul>
+  </li>
+  <li><strong>AudioStream 資源</strong>：音訊檔案會載入為 <code>AudioStream</code>（及其格式專屬子類別），再指派給播放節點——與 Unity 透過 <code>AudioClip</code>＋<code>AudioSource</code> 所採用的資料／播放器分離概念相同。</li>
+  <li><strong>AudioStreamRandomizer</strong>：一種內建資源，可在每次播放時於多個串流間隨機挑選，並可選擇性地變化音高／音量——這是 Godot 原生內建的便利功能，而 Unity 通常得靠手動隨機索引 <code>AudioClip[]</code> 陣列來實現。</li>
+  <li><strong>透過匯流排實現殘響</strong>：<code>AudioStreamPlayer3D</code> 在進入 <code>Area3D</code> 時，可將乾訊號與殘響訊號分別送往不同的匯流排，藉此實現各房間的聲學效果——這是 Godot 對 Unity Reverb Zones 的解法，透過匯流排系統加上 <code>Area3D</code> 實作，而非專屬的區域元件。</li>
+  <li><strong>Doppler Effect</strong>：概念上以相同方式支援——追蹤 <code>AudioStreamPlayer3D</code> 與 <code>Camera</code> 之間的相對速度。</li>
+  <li><strong>音訊匯流排</strong>：Godot 的混音圖（Audio 面板），每個匯流排可套用效果——在結構上等同於 Unity 的 <code>AudioMixer</code> 群組。</li>
+  <li><strong>Web 平台的限制</strong>：在使用預設的 Sample 播放模式時，殘響匯流排與 Doppler effect 在 Web 匯出平台上<strong>不受支援</strong>——僅在 Stream 模式下才能運作。</li>
+  <li><strong>將遊戲玩法與音訊同步</strong>（與節奏遊戲／緊密音畫同步相關）：Godot 文件明確記載了兩種做法：
+    <ol>
+      <li><strong>系統時脈方法</strong>（建議用於短音軌）：使用 <code>Time.get_ticks_usec()</code>，並以 <code>AudioServer.get_time_to_next_mix()</code> 與 <code>AudioServer.get_output_latency()</code> 進行補償。長時間播放後會逐漸產生偏移。</li>
+      <li><strong>硬體時脈方法</strong>（適用於長時間／連續播放）：結合 <code>AudioStreamPlayer.get_playback_position()</code> 與 <code>AudioServer.get_time_since_last_mix()</code>，再透過減去 <code>AudioServer.get_output_latency()</code> 進一步修正。可能因多執行緒而出現輕微抖動——應驗證數值不會逐幀遞減，並捨棄異常值。</li>
+    </ol>
+    <ul>
+      <li>文件中提到的延遲來源包括：音訊緩衝區大小（可於專案設定中調整，需在延遲與 CPU 負載／爆音風險間取捨）、以區塊為單位的混音、繪圖 API 延遲（2-3 影格），以及電視／顯示器的處理管線。</li>
+    </ul>
+  </li>
+</ul>
+
+<h2>比較／對應表</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Unity</th>
+      <th>Godot</th>
+      <th>備註</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>AudioListener</code>（掛在 Camera 上）</td>
+      <td>隱含機制：目前作用中的 <code>Camera2D</code>／<code>Camera3D</code> 即扮演聽者角色；可能存在專屬的 <code>AudioListener2D</code>／<code>AudioListener3D</code> 節點以覆寫此行為</td>
+      <td>本次查閱的文件未能確認——見後續追蹤事項</td>
+    </tr>
+    <tr>
+      <td><code>AudioSource</code>（加上空間混合設定）</td>
+      <td><code>AudioStreamPlayer</code> / <code>AudioStreamPlayer2D</code> / <code>AudioStreamPlayer3D</code></td>
+      <td>Godot 以節點類型區分，而非單一元件搭配空間混合滑桿</td>
+    </tr>
+    <tr>
+      <td><code>AudioClip</code></td>
+      <td><code>AudioStream</code>（<code>AudioStreamOggVorbis</code>、<code>AudioStreamMP3</code>、<code>AudioStreamWAV</code> 等）</td>
+      <td>相同的資料／播放器分離概念</td>
+    </tr>
+    <tr>
+      <td><code>AudioMixer</code>（群組、效果、母帶處理）</td>
+      <td>音訊匯流排（Audio 面板，各匯流排可套用效果）</td>
+      <td>結構上等同的訊號路由圖</td>
+    </tr>
+    <tr>
+      <td>手動撰寫隨機音檔選擇邏輯</td>
+      <td><code>AudioStreamRandomizer</code>（內建）</td>
+      <td>Godot 原生內建此功能</td>
+    </tr>
+    <tr>
+      <td>Reverb Zones（Audio Filter／Reverb Zone 元件）</td>
+      <td><code>Area3D</code> ＋ <code>AudioStreamPlayer3D</code> 殘響匯流排路由</td>
+      <td>機制不同，效果類似</td>
+    </tr>
+    <tr>
+      <td>Doppler（<code>AudioSource</code> ＋相對速度）</td>
+      <td><code>AudioStreamPlayer3D</code> ＋ <code>Camera</code> 相對速度</td>
+      <td>概念相同</td>
+    </tr>
+    <tr>
+      <td><code>Microphone</code> 類別（即時錄音）</td>
+      <td><em>（本次未確認）</em></td>
+      <td>Godot 很可能有對應的音訊輸入機制——需另行查證</td>
+    </tr>
+    <tr>
+      <td><code>AudioSettings.dspTime</code> / <code>AudioSource.PlayScheduled()</code>（一般 Unity 知識——取樣精確排程；<strong>未從已擷取的總覽頁面確認</strong>）</td>
+      <td><code>AudioServer</code> 延遲補償 API（<code>get_time_to_next_mix()</code>、<code>get_output_latency()</code>、<code>get_time_since_last_mix()</code>）＋ <code>AudioStreamPlayer.get_playback_position()</code></td>
+      <td>Godot 文件針對緊密同步提供了明確且完整的說明；Unity 對應的機制仍需對照其專屬的腳本文件確認，而非僅靠總覽頁面</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>回答可能會被問到的問題</h2>
+
+<h3>1. <code>AudioSource</code>／<code>AudioListener</code> 的直接遷移對應為何？</h3>
+<p>
+<code>AudioSource</code> → 依聲音所需的空間性選用對應的 <code>AudioStreamPlayer</code> 變體（無位置性／2D／3D）。<code>AudioListener</code> 這一側仍需驗證——Godot 預設行為（以目前 Camera 作為隱含聽者）或許已能涵蓋大多數情況；請確認此專案是否需要獨立於攝影機、可另行覆寫位置的聽者節點。
+</p>
+
+<h3>2. Unity 的 <code>AudioMixer</code> 如何對應到 Godot？</h3>
+<p>
+Godot 的匯流排系統（Audio 面板）在結構上是對應項目——匯流排搭配各匯流排效果，類似 <code>AudioMixer</code> 的群組。請確認此專案實際使用了 <code>AudioMixer</code> 的哪些具體功能（快照、暴露／閃避〔ducking〕參數、旁鏈壓縮），因為本文尚未確認兩者是否能達到 1:1 的功能對等。
+</p>
+
+<h3>3. 緊密的音畫同步（例如節奏遊戲機制）該如何處理？</h3>
+<p>
+使用 Godot 文件記載的同步方法：短音軌採用系統時脈方法，長時間／連續播放則採用硬體時脈方法——兩者皆有明確記載的延遲補償公式。若 Unity 端目前使用類似 <code>AudioSettings.dspTime</code>／<code>PlayScheduled()</code> 的取樣精確排程，這部分需要另外對照 Unity 專屬的音訊腳本文件加以確認（本文所查閱的總覽頁面並未涵蓋）。
+</p>
+
+<h3>4. 有沒有平台特定的注意事項？</h3>
+<p>
+若此專案的目標平台包含 Web／HTML5 匯出，請注意 Godot 的殘響匯流排路由與 Doppler effect 在 Web 上的預設 Sample 播放模式下無法運作——僅 Stream 模式支援。
+</p>
+
+<h2>後續追蹤事項／待確認事項</h2>
+<ul>
+  <li>確認 Godot 是否有 <code>AudioListener2D</code>／<code>AudioListener3D</code> 節點（或等效機制），可用於覆寫預設以攝影機作為隱含聽者的行為——本次查閱的文件並未確立此點。</li>
+  <li>確認 Godot 的即時麥克風／音訊輸入錄製 API（可能是 <code>AudioEffectRecord</code> 或類似機制），並與 Unity 的 <code>Microphone</code> 類別進行比較——本次未涵蓋此項目。</li>
+  <li>盤點此專案實際使用了哪些 <code>AudioMixer</code> 功能（快照、閃避、旁鏈效果）——這將決定 Godot 匯流排系統能滿足需求的完整程度。</li>
+  <li>確認此專案是否需要節奏遊戲等級的音畫同步；若是，請對照 Unity 目前的實際實作方式（<code>dspTime</code>／<code>PlayScheduled</code> 或其他方式）與 Godot 這兩種文件記載的同步方法。</li>
+  <li>確認此專案是否以 Web／HTML5 為目標匯出平台，因該平台存在殘響／Doppler 在 Sample 對 Stream 模式上的限制。</li>
+</ul>
+
+</div>
+</body>
+</html>

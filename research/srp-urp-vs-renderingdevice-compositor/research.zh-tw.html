@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>SRP / URP（Unity）與 RenderingDevice / Compositor（Godot）</title>
+<style>
+  :root {
+    color-scheme: light;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    background: #fafafa;
+    color: #1f2328;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", Helvetica, Arial, sans-serif;
+    line-height: 1.75;
+  }
+  .content {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 5rem;
+  }
+  h1 {
+    font-size: 1.9rem;
+    border-bottom: 2px solid #d0d7de;
+    padding-bottom: 0.5rem;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 1.4rem;
+    margin-top: 2.5rem;
+    border-bottom: 1px solid #d8dee4;
+    padding-bottom: 0.35rem;
+  }
+  h3 {
+    font-size: 1.15rem;
+    margin-top: 1.8rem;
+  }
+  p {
+    margin: 1rem 0;
+  }
+  ul {
+    padding-left: 1.5rem;
+  }
+  li {
+    margin: 0.5rem 0;
+  }
+  a {
+    color: #0969da;
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    background: #eff1f3;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.92em;
+  }
+  pre {
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    padding: 1rem;
+    overflow-x: auto;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1.5rem 0;
+    font-size: 0.95rem;
+  }
+  th, td {
+    border: 1px solid #d0d7de;
+    padding: 0.6rem 0.8rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: #f6f8fa;
+    font-weight: 600;
+  }
+  tr:nth-child(even) td {
+    background: #fbfbfc;
+  }
+  strong {
+    font-weight: 600;
+  }
+  .toc-note {
+    color: #57606a;
+    font-size: 0.95rem;
+  }
+</style>
+</head>
+<body>
+<div class="content">
+
+<h1>SRP / URP（Unity）與 RenderingDevice / Compositor（Godot）</h1>
+
+<h2>官方資料來源</h2>
+<ul>
+  <li>Unity SRP Core package：<a href="https://docs.unity3d.com/Packages/com.unity.render-pipelines.core@17.6/manual/index.html">https://docs.unity3d.com/Packages/com.unity.render-pipelines.core@17.6/manual/index.html</a></li>
+  <li>Unity Scriptable Render Pipeline overview：<a href="https://docs.unity3d.com/2022.3/Documentation/Manual/ScriptableRenderPipeline.html">https://docs.unity3d.com/2022.3/Documentation/Manual/ScriptableRenderPipeline.html</a></li>
+  <li>Unity URP introduction：<a href="https://docs.unity3d.com/6000.6/Documentation/Manual/urp/urp-introduction.html">https://docs.unity3d.com/6000.6/Documentation/Manual/urp/urp-introduction.html</a></li>
+  <li>Godot RenderingDevice：<a href="https://docs.godotengine.org/zh-tw/4.x/classes/class_renderingdevice.html">https://docs.godotengine.org/zh-tw/4.x/classes/class_renderingdevice.html</a></li>
+  <li>Godot Compositor：<a href="https://docs.godotengine.org/zh-tw/4.x/classes/class_compositor.html">https://docs.godotengine.org/zh-tw/4.x/classes/class_compositor.html</a></li>
+</ul>
+
+<h2>Unity：SRP / URP</h2>
+<ul>
+  <li><strong>Scriptable Render Pipeline（SRP）</strong>：讓開發者能透過 C# 完全控制每一影格（per-frame）的整個渲染流程。核心組成元件包括：<code>ScriptableRenderContext</code>（排程／執行渲染指令）、SRP Batcher（一項效能最佳化機制），以及開發者自行撰寫腳本來控制渲染迴圈本身。</li>
+  <li><strong>SRP Core package</strong>：URP 與 HDRP 共用的基礎樣板／工具程式碼（平台專屬的圖形 API 處理、常見的渲染工具），可用來建構一套完全自訂的 SRP，或用來擴充／修改既有的 SRP。</li>
+  <li><strong>URP</strong>：Unity 官方提供的<em>預先建構好</em>的 SRP 實作。對美術人員友善，並針對廣泛的硬體範圍（從行動裝置到高階 PC／主機）調校過效能。實務上大多數「使用 SRP」的 Unity 內容，其實指的是「使用 URP」（或 HDRP），而非從零打造一套完全客製化的管線——後者相對少見。</li>
+  <li>若不想從頭撰寫一整套全新的 SRP 來擴充 URP，一般會透過 <strong>Renderer Features</strong>（<code>ScriptableRendererFeature</code>）來達成——將其插入 URP 既有的管線中，以加入自訂的渲染通道（pass）或後處理效果。</li>
+</ul>
+
+<h2>Godot：RenderingDevice / Compositor</h2>
+<ul>
+  <li><strong>RenderingDevice</strong>：一個真正低階的圖形抽象層，位於 Godot 高階的 <code>RenderingServer</code> 之下，直接對應現代圖形 API（Vulkan、D3D12、Metal、WebGPU）。支援計算著色器（compute shader）以及「未透過 RenderingServer 與高階節點公開」的自訂 GPU 工作。
+    <ul>
+      <li>螢幕渲染會有一個全域實例（<code>RenderingServer.get_rendering_device()</code>）；也可以建立次要／本地實例，用於執行緒外（off-thread）的 GPU 工作（<code>RenderingServer.create_local_rendering_device()</code>）。</li>
+      <li>官方文件明確指出需要具備中階的 Vulkan 相關知識，並建議先學習 Vulkan 的基礎概念。</li>
+      <li>在無頭（headless）模式下，或使用 Compatibility（GLES3 等級）渲染後端時，皆無法使用。</li>
+    </ul>
+  </li>
+  <li><strong>Compositor / CompositorEffect</strong>：一種 <code>Resource</code>，內部儲存一組 <code>CompositorEffect</code>物件陣列，會在 <code>Viewport</code> 的渲染過程中套用。這是將自訂渲染／後處理通道插入 Godot<em>既有</em>內建渲染器的機制。
+    <ul>
+      <li>官方明確標示為<strong>實驗性（experimental）</strong>功能——「未來會為渲染管線加入更多自訂化選項」。</li>
+    </ul>
+  </li>
+  <li>Godot 實際的渲染器後端（Forward+、Mobile、Compatibility）是在專案設定（project settings）層級選擇的；它們並不像 Unity 的 <code>RenderPipelineAsset</code> 那樣是可替換／可腳本化的管線<em>物件</em>。</li>
+</ul>
+
+<h2>對照 / 對應關係</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Unity 概念</th>
+      <th>最接近的 Godot 概念</th>
+      <th>對應程度</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>完全自訂的 SRP（透過腳本化的 <code>RenderPipelineAsset</code> 替換整個管線）</td>
+      <td><em>（沒有直接對應項目）</em></td>
+      <td>Godot 在 RenderingServer 與 RenderingDevice 之間，並沒有「可替換的腳本化管線物件」這一層</td>
+    </tr>
+    <tr>
+      <td>URP（預先建構好的 SRP，對美術友善，經跨平台調校）</td>
+      <td>內建的 Forward+ / Mobile 渲染器（專案設定選項）</td>
+      <td>角色概念上相似，但機制不同（是一項設定，而非可腳本化的資源）</td>
+    </tr>
+    <tr>
+      <td>URP Renderer Feature（<code>ScriptableRendererFeature</code>）——為 URP 加入渲染通道／後處理</td>
+      <td><code>Compositor</code> + <code>CompositorEffect</code></td>
+      <td>最接近的實際對應，但仍屬實驗性且持續發展中</td>
+    </tr>
+    <tr>
+      <td>在管線底層撰寫原生 GPU／計算工作</td>
+      <td><code>RenderingDevice</code></td>
+      <td>比 SRP 的 <code>ScriptableRenderContext</code> 層級低得多——完全繞過場景圖（scene graph）與剔除（culling）機制</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>關鍵架構落差</strong>：Unity 的 SRP 模型是一個<em>中階</em>的腳本化介面——你仍然能取得場景剔除、批次處理（batching），以及結構化的每影格回呼（callback），同時對繪製過程擁有完全的控制權。Godot 並沒有對等的中階介面：<code>RenderingServer</code>／內建渲染器並非設計來被整套替換，<code>Compositor</code>／<code>CompositorEffect</code> 只是在既有渲染器的特定節點上進行「掛接（hook into）」，而 <code>RenderingDevice</code> 則直接降到接近原生 Vulkan 風格的圖形程式設計層級，完全沒有與場景圖整合。</p>
+
+<h2>回答可能會被問到的問題</h2>
+
+<h3>1. Godot 官方是否有對應完全自訂 SRP 的機制？</h3>
+<p>沒有。Godot 並不存在可替換、可腳本化的「管線物件」這一層。渲染器後端（Forward+ / Mobile / Compatibility）是每個專案固定的選擇項，並非像 Unity 的 <code>RenderPipelineAsset</code> 那樣可以用自己撰寫的 C#／GDScript 驅動管線來替換。</p>
+
+<h3>2. 是否有專門對應 URP 的機制？</h3>
+<p>Godot 內建的 Forward+（面向桌面平台）與 Mobile 渲染器，扮演著類似的<em>角色</em>（針對特定硬體等級、有人維護且經過調校的渲染路徑），但它們是透過專案設定來選擇的，而非以可插拔的資源（asset）形式實作。</p>
+
+<h3>3. 是否有對應 URP Renderer Feature（自訂通道／後處理）的機制？</h3>
+<p>有，在功能上對應的是 <code>Compositor</code> + <code>CompositorEffect</code>。對於那些「自訂 SRP」工作其實只是「URP 加上幾個 Renderer Features」的團隊來說，這是最接近的對應方案。但需注意：此功能仍屬實驗性，在正式採用前，應先確認它能否涵蓋專案所需的特定渲染通道／效果。</p>
+
+<h3>4. 如果專案使用的是真正客製化的 SRP（而不只是 URP 加幾個 features）呢？</h3>
+<p>目前沒有可以直接遷移過去的對等介面。可行的選項是：(a) 降到 <code>RenderingDevice</code> 層級，以接近 Vulkan 的方式手動撰寫自訂渲染邏輯（工程量龐大，且沒有場景圖方面的輔助），或 (b) 重新評估該自訂管線邏輯是否能夠改寫為建立在 Godot 內建渲染器之上的 <code>CompositorEffect</code> 通道，而不是整套替換管線。</p>
+
+<h2>後續追蹤事項 / 待驗證項目</h2>
+<ul>
+  <li>確認本專案的 Unity 渲染方式屬於：(a) 未經修改或僅有極少 Renderer Features 的標準 URP、(b) URP 加上自訂 Renderer Features，或 (c) 完全自訂的 SRP。這將決定 Godot 端的目標是「直接使用 Forward+/Mobile」、「Forward+/Mobile 加上 Compositor effects」，還是「一項規模大得多、以 RenderingDevice 為基礎的自訂渲染器工程」。</li>
+  <li>檢查目前 Godot 版本的 <code>Compositor</code>／<code>CompositorEffect</code> 功能完整度，是否涵蓋本專案所依賴的特定渲染通道／效果（陰影、自訂光照模型、特定的後處理堆疊）——此功能明確表示仍在持續演進中。</li>
+  <li>若專案中有任何地方使用了 HDRP（而非 URP），需注意 HDRP 是針對高階硬體專用的渲染方案（光線追蹤等），與 Godot 之間的對應程度比 URP 更低——若相關則應另外標記說明。</li>
+</ul>
+
+</div>
+</body>
+</html>

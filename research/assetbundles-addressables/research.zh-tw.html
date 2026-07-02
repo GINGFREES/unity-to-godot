@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AssetBundles / Addressables（Unity）vs PCKPacker / Resource Packs（Godot）</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #fafafa;
+    color: #222;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    line-height: 1.8;
+  }
+  .content {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+  h1 {
+    font-size: 1.75em;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 0.4em;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 1.35em;
+    margin-top: 2em;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 0.3em;
+  }
+  h3 {
+    font-size: 1.1em;
+    margin-top: 1.5em;
+  }
+  p {
+    margin: 0.8em 0;
+  }
+  ul, ol {
+    padding-left: 1.6em;
+  }
+  li {
+    margin: 0.4em 0;
+  }
+  li > ul, li > ol {
+    margin-top: 0.4em;
+  }
+  a {
+    color: #1a5fb4;
+    text-decoration: none;
+    word-break: break-word;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    background-color: #eef0f2;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.92em;
+  }
+  pre {
+    background-color: #f4f5f7;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.9em;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  th {
+    background-color: #f0f2f4;
+  }
+  strong {
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="content">
+
+<h1>AssetBundles / Addressables（Unity）vs PCKPacker / Resource Packs（Godot）</h1>
+
+<h2>官方資料來源</h2>
+<ul>
+  <li>Unity AssetBundles 簡介：<a href="https://docs.unity3d.com/cn/2022.3/Manual/AssetBundlesIntro.html">https://docs.unity3d.com/cn/2022.3/Manual/AssetBundlesIntro.html</a></li>
+  <li>Godot PCKPacker 類別：<a href="https://docs.godotengine.org/zh-tw/4.x/classes/class_pckpacker.html">https://docs.godotengine.org/zh-tw/4.x/classes/class_pckpacker.html</a></li>
+  <li>Godot 匯出封包／修補檔／模組：<a href="https://docs.godotengine.org/en/stable/tutorials/export/exporting_pcks.html">https://docs.godotengine.org/en/stable/tutorials/export/exporting_pcks.html</a></li>
+  <li>Godot ProjectSettings.load_resource_pack / ResourceLoader：<a href="https://docs.godotengine.org/en/stable/classes/class_resourceloader.html">https://docs.godotengine.org/en/stable/classes/class_resourceloader.html</a></li>
+</ul>
+
+<h2>Unity：AssetBundles 與 Addressables</h2>
+<ul>
+  <li><strong>AssetBundles</strong>：一種打包非程式碼資產（材質貼圖、音訊、prefab、ScriptableObject 資料）的封存檔，可在執行階段獨立於主程式建置外進行載入／下載。
+    <ul>
+      <li>用途：DLC、縮小初始安裝檔大小、平台專屬的最佳化資產、降低執行階段記憶體壓力。</li>
+      <li>bundle 之間可以互相依賴（例如某個材質 bundle 參照到某個材質貼圖 bundle）。</li>
+      <li>壓縮選項：LZMA（整個 bundle 一起壓縮，體積較小但解壓縮較慢）vs LZ4（分區塊壓縮，速度較快）。</li>
+      <li>可包含序列化物件（包含 ScriptableObject），但 C# 類別的*定義*必須已經編譯進應用程式中——bundle 攜帶的是資料，而非程式碼。</li>
+    </ul>
+  </li>
+  <li><strong>Addressables</strong>：建構於 AssetBundles 之上的高階套件，額外提供：
+    <ul>
+      <li>以 Addressable 鍵值／標籤／群組取代手動管理 bundle 路徑。</li>
+      <li>目錄（catalog）機制以及遠端目錄更新（無需完整重新建置應用程式即可發佈新內容）。</li>
+      <li>具參照計數的非同步載入／卸載（<code>Addressables.LoadAssetAsync</code> / <code>Release</code>）。</li>
+      <li>自動化的依賴關係與 bundle 佈局管理。</li>
+    </ul>
+  </li>
+</ul>
+
+<h2>Godot：PCKPacker 與 Resource Packs</h2>
+<ul>
+  <li>Godot 對應「asset bundle」概念的東西是 <code>.pck</code> 檔——一種打包好的資源封存檔。</li>
+  <li><code>PCKPacker</code> 可在執行階段／匯出時建構 <code>.pck</code>：
+    <ul>
+      <li><code>pck_start(path, alignment, key, encrypt_directory)</code> —— 開始建立新的 pck</li>
+      <li><code>add_file(target_path, source_path, encrypt)</code> —— 加入檔案</li>
+      <li><code>add_file_from_buffer(target_path, data, encrypt)</code> —— 從原始位元組資料加入</li>
+      <li><code>add_file_removal(target_path)</code> —— 標記某檔案為待移除（用於修補檔）</li>
+      <li><code>flush(verbose)</code> —— 完成並寫入；物件銷毀時也會自動 flush</li>
+    </ul>
+  </li>
+  <li>在執行階段載入：<code>ProjectSettings.load_resource_pack("res://mod.pck")</code>，之後即可透過 <code>load()</code> / <code>ResourceLoader</code> 正常載入資產。</li>
+  <li><strong>注意事項</strong>：若封包內的檔案與現有檔案共用相同的 <code>res://</code> 路徑，會被靜默取代。這對修補檔／模組來說是刻意設計的行為，但若沒有事先規劃好 DLC 的命名空間，可能會成為一個陷阱。</li>
+  <li>沒有內建的目錄機制、版本控管、標籤／群組，也沒有具參照計數的非同步卸載——這只是一個低階原始工具，而非一套完整的資產管理框架。</li>
+  <li>Godot 的 <code>Resource</code> 物件是 <code>RefCounted</code>，因此一旦沒有任何東西參照某個資源，卸載機制大致上是自動的——在大多數情況下並沒有像 <code>AssetBundle.Unload()</code> / <code>Resources.UnloadUnusedAssets()</code> 那樣需要手動呼叫的直接對應物。</li>
+</ul>
+
+<h2>回答具體問題</h2>
+
+<p><strong>1. 是否有官方 Godot 套件對應到 Addressables？</strong><br>
+沒有。Godot 只提供低階原始工具（<code>PCKPacker</code> + <code>ProjectSettings.load_resource_pack()</code> + <code>ResourceLoader</code>）。沒有任何官方套件提供類似 Addressables 的目錄機制、標籤／群組、遠端內容版本控管，或具參照計數的載入／卸載。</p>
+
+<p><strong>2. 是否可能在 Godot 中客製一套類似 AssetBundle 的系統？</strong><br>
+可以——而且這是預期中會做的事，並不特別。典型作法如下：</p>
+<ul>
+  <li>依內容分組分別匯出獨立的 <code>.pck</code> 檔（大致對應「bundle」）。</li>
+  <li>透過 <code>HTTPRequest</code> 將封包下載至 <code>user://</code>。</li>
+  <li>下載完成後呼叫 <code>ProjectSettings.load_resource_pack()</code>。</li>
+  <li>自行維護一份目錄（JSON 或自訂的 <code>Resource</code>），列出可用的封包、版本，以及資產路徑——用以取代 Addressables 的目錄／標籤機制。</li>
+  <li>由於資源採參照計數，「卸載」大致上會隨著參照被釋放而自然發生——但如果需要在執行期間熱抽換已更新的內容，就必須自行實作失效（invalidation）邏輯，因為 Godot 不會自動偵測到已載入的資源已被較新的封包取代。</li>
+</ul>
+
+<p><strong>3. 官方方案 vs 客製方案——哪個比較好？</strong><br>
+由於並沒有真正的官方 Addressables 對應物可以拿來「取代」客製化工作，因此真正的選擇其實是「在官方 <code>PCKPacker</code> 原始工具之上疊一層薄的客製層」（建議做法）vs「完全捨棄 <code>.pck</code>、從零打造一套 bundle 系統」（沒有任何好理由這麼做——不要重複發明打包／載入機制）。客製層的範疇應該以實際用到的功能為準：如果這個專案使用 Addressables 主要是為了組織性的延遲載入（lazy loading），而非可即時更新的 DLC，那麼 Godot 版本可以比完整複製一套 Addressables 簡單得多。</p>
+
+<h2>待辦事項／之後需要驗證的事項</h2>
+<ul>
+  <li>確認這個專案實際上依賴 Addressables 的哪些功能（遠端目錄更新？記憶體預算／群組載入？還是只是單純的延遲載入？）——這會決定實際需要多少客製工具。</li>
+  <li>若專案有為 AssetBundles 加密，需檢查 Godot 的 <code>.pck</code> 加密支援（依官方文件，為金鑰式加密）。</li>
+  <li>在決定完全自行客製之前，先確認是否有社群附加元件（addon）涵蓋目錄／版本管理功能——採用前需評估其可信度／維護風險。</li>
+</ul>
+
+</div>
+</body>
+</html>

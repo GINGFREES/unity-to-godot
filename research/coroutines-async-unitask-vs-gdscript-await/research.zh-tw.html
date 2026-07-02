@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coroutine／Async-Await／UniTask（Unity）與 GDScript 的 await 比較</title>
+<style>
+  :root {
+    color-scheme: light;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    background: #fafafa;
+    color: #1f2328;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", Helvetica, Arial, sans-serif;
+    line-height: 1.75;
+  }
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 5rem;
+  }
+  h1 {
+    font-size: 1.9rem;
+    border-bottom: 2px solid #d0d7de;
+    padding-bottom: 0.5rem;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 1.4rem;
+    margin-top: 2.5rem;
+    border-bottom: 1px solid #d0d7de;
+    padding-bottom: 0.35rem;
+  }
+  h3 {
+    font-size: 1.1rem;
+    margin-top: 1.75rem;
+  }
+  p {
+    margin: 0.9rem 0;
+  }
+  ul, ol {
+    padding-left: 1.6rem;
+  }
+  li {
+    margin: 0.4rem 0;
+  }
+  li > ul, li > ol {
+    margin-top: 0.4rem;
+  }
+  a {
+    color: #0969da;
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    background: #f0f1f3;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.92em;
+  }
+  pre {
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    padding: 1rem;
+    overflow-x: auto;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.9em;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1.2rem 0;
+    font-size: 0.95rem;
+  }
+  th, td {
+    border: 1px solid #d0d7de;
+    padding: 0.6rem 0.8rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: #f0f1f3;
+    font-weight: 600;
+  }
+  tr:nth-child(even) {
+    background: #fbfbfb;
+  }
+  strong {
+    font-weight: 600;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid #d0d7de;
+    margin: 2rem 0;
+  }
+  .note {
+    color: #57606a;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Coroutine／Async-Await／UniTask（Unity）與 GDScript 的 <code>await</code> 比較</h1>
+
+<h2>官方資料來源</h2>
+<ul>
+  <li>Unity Coroutine：<a href="https://docs.unity3d.com/6000.2/Documentation/ScriptReference/Coroutine.html">https://docs.unity3d.com/6000.2/Documentation/ScriptReference/Coroutine.html</a></li>
+  <li>Unity 的 async/await 支援（<code>Awaitable</code>）：<a href="https://docs.unity3d.com/6000.0/Documentation/Manual/async-await-support.html">https://docs.unity3d.com/6000.0/Documentation/Manual/async-await-support.html</a></li>
+  <li>UniTask（Cysharp，第三方套件）：<a href="https://github.com/cysharp/unitask">https://github.com/cysharp/unitask</a></li>
+  <li>GDScript coroutines/await 概觀：<a href="https://gdscript.com/solutions/coroutines-and-yield/">https://gdscript.com/solutions/coroutines-and-yield/</a></li>
+  <li>GDQuest 詞彙表「await」：<a href="https://school.gdquest.com/glossary/keyword_await">https://school.gdquest.com/glossary/keyword_await</a> — <strong>擷取被封鎖（HTTP 403）</strong>，未納入以下內容；若需要更多細節，之後可改用其他存取方式重新嘗試。</li>
+</ul>
+
+<h2>Unity：三種並存的非同步機制</h2>
+<ol>
+  <li><strong>Coroutine</strong>（<code>IEnumerator</code> + <code>StartCoroutine</code>／<code>StopCoroutine</code>）
+    <ul>
+      <li>函式會透過 <code>yield return</code> 暫停並在之後恢復執行，這是整合進 Unity 影格迴圈（frame loop）中的機制——並非真正的執行緒（thread）。</li>
+      <li><code>yield return null</code> → 於下一個影格恢復；<code>yield return new WaitForSeconds(n)</code> → 延遲一段時間後恢復；其他 <code>YieldInstruction</code> 涵蓋更多情況；Coroutine 可以巢狀（nest）（<code>yield return StartCoroutine(...)</code>）。</li>
+      <li>無法直接回傳數值（沒有泛型結果）——需以 <code>ref</code>／callback 模式來變通處理。</li>
+      <li>自動綁定於所屬 <code>MonoBehaviour</code> 的生命週期（若 GameObject 被停用／銷毀，Coroutine 會停止）。</li>
+    </ul>
+  </li>
+  <li><strong>原生 async/await</strong>（<code>Awaitable</code>，於 Unity 2023.1+ 引入，與標準 .NET <code>Task</code> 並存）
+    <ul>
+      <li>真正的 C# <code>async</code>／<code>await</code>；與 Coroutine 不同，它可以回傳數值。</li>
+      <li>新增 <code>Awaitable</code> 的原因，正是因為單純的 <code>Task</code> 帶有 GC 配置（allocation）的額外負擔，且不符合 Unity 單一主執行緒（single-main-thread）的執行模型。</li>
+      <li>需要留意依據 continuation 恢復執行時所在的執行緒，哪些 Unity API 可以安全呼叫。</li>
+    </ul>
+  </li>
+  <li><strong>UniTask</strong>（Cysharp，第三方，免費）
+    <ul>
+      <li>以 <strong>struct 為基礎</strong>、零配置（zero-allocation）的 <code>UniTask&lt;T&gt;</code> 解決 <code>Task</code> 的配置額外負擔問題。</li>
+      <li>整合 Unity 的 <code>PlayerLoop</code> 以進行以影格為單位的等待（<code>UniTask.Yield()</code>、<code>UniTask.DelayFrame()</code>），無需啟動真正的執行緒。</li>
+      <li>採用標準的以 <code>CancellationToken</code> 為基礎的取消機制。</li>
+      <li>支援 <code>AsyncEnumerable</code>／LINQ 用於非同步串流（async streams），以及事件／UI 綁定。</li>
+      <li><strong>注意事項</strong>：除非呼叫 <code>.Preserve()</code>，否則一個 <code>UniTask</code> 實例只能被 await 一次——這相較於 <code>Task</code>（可被多次 await）以及 Coroutine（概念上沒有這種限制）而言，是個實際存在的陷阱（footgun）。</li>
+      <li>預設不使用多執行緒——必須明確呼叫 <code>UniTask.SwitchToThreadPool()</code> 才能離開主執行緒。</li>
+    </ul>
+  </li>
+</ol>
+
+<h2>Godot：<code>await</code>（GDScript，Godot 4）</h2>
+<ul>
+  <li>GDScript 只有<strong>一種</strong>統一的非同步模型，而非三種：任何包含 <code>await</code> 的函式，都會隱含地成為一個可被其呼叫端以 <code>await</code> 使用的 coroutine。</li>
+  <li><code>await</code> 會暫停執行，直到某個<strong>signal</strong>觸發（或被 await 的呼叫完成）——例如 <code>await get_tree().create_timer(1.0).timeout</code>，或是 await 一個自訂／節點的 signal。</li>
+  <li>在<em>沒有</em> <code>await</code> 的情況下呼叫一個類似 coroutine 的函式，並不會造成阻塞（block）——它會「立即回傳一個可能被忽略的值」，而被呼叫端則繼續在背景執行（即發即忘，fire-and-forget）。</li>
+  <li>在同一個影格內發出的自訂 signal，應使用 <code>call_deferred</code> 以避免時機／順序問題。</li>
+  <li>Godot 3.x 使用的是 <code>yield()</code> 而非 <code>await</code>，它會回傳一個 <code>GDScriptFunctionState</code> 物件，並需手動呼叫 <code>.resume()</code> 方法——相較於 Godot 4 的 <code>await</code>，這是一種更手動、更低階的機制。</li>
+</ul>
+
+<h2>比較／對應關係</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Unity</th>
+      <th>Godot</th>
+      <th>備註</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Coroutine（<code>IEnumerator</code>、<code>StartCoroutine</code>）</td>
+      <td>對某個 signal 使用 <code>await</code>（函式隱含地成為 coroutine）</td>
+      <td>Godot 沒有獨立的「coroutine」API 介面——它就只是 <code>await</code> 加上 signal，與一般函式統一在一起</td>
+    </tr>
+    <tr>
+      <td><code>yield return null</code>（等待一個影格）</td>
+      <td><code>await get_tree().process_frame</code> <em>（請確認確切的 signal 名稱／時機——見後續追蹤事項）</em></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><code>yield return new WaitForSeconds(n)</code></td>
+      <td><code>await get_tree().create_timer(n).timeout</code></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><code>StopCoroutine()</code></td>
+      <td><em>（無直接對應項目）</em></td>
+      <td>需要手動的取消模式；在已釋放（freed）的節點上恢復 <code>await</code> 是常見的執行期錯誤</td>
+    </tr>
+    <tr>
+      <td>原生 <code>async</code>／<code>Awaitable</code>（Unity 2023.1+）</td>
+      <td><code>await</code>（GDScript 原生關鍵字）</td>
+      <td>兩者皆為「真正的」async/await，且與 Coroutine 不同，兩者都能回傳數值</td>
+    </tr>
+    <tr>
+      <td>UniTask（第三方、零配置、與 <code>PlayerLoop</code> 整合）</td>
+      <td><em>（不需要第三方層）</em></td>
+      <td>GDScript 的 <code>await</code> 本身已是原生、與影格整合的語言特性——它所解決的問題，正是 UniTask 為 Unity 事後補上的同一個問題</td>
+    </tr>
+    <tr>
+      <td><code>CancellationToken</code>（Task/UniTask）</td>
+      <td><em>（無內建對應項目）</em></td>
+      <td>需要手動的旗標／保護（guard）模式</td>
+    </tr>
+    <tr>
+      <td><code>UniTask.SwitchToThreadPool()</code></td>
+      <td><code>Thread</code> / <code>WorkerThreadPool</code></td>
+      <td>真正的多執行緒在兩個引擎中都是各自獨立、需選擇啟用（opt-in）的系統，並非 await/coroutine 模型本身的一部分</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>回答可能會被問到的問題</h2>
+
+<h3>1. GDScript 有對應 Unity Coroutine 的東西嗎？</h3>
+<p>沒有獨立的 API——<code>await</code> 加上 signal 已原生涵蓋相同的範疇。任何使用 await 的函式都會自動表現得像 Unity 所稱的 coroutine，不需要學習另一套類似 IEnumerator 的機制。</p>
+
+<h3>2. GDScript 有類似 C# 原生 async/<code>Awaitable</code> 的東西嗎？</h3>
+<p>有，而且它是 GDScript 中<em>唯一</em>的非同步模型——沒有需要額外考量的舊有替代方案。相較之下，Unity 有三套並存的系統（Coroutine、原生 async/<code>Awaitable</code>，以及 UniTask），依使用位置的不同，每一套可能都需要不同的遷移處理方式。</p>
+
+<h3>3. 我們需要在 Godot 中使用類似 UniTask 的函式庫嗎？</h3>
+<p>不需要。<code>await</code> 已經是原生的語言特性——預設為單執行緒，並透過 signal 與影格整合——因此它並不存在 UniTask 為了解決 Unity 的 <code>Task</code> 所要克服的那些配置（allocation）／PlayerLoop 整合問題。</p>
+
+<h3>4. 最大的遷移風險是什麼？</h3>
+<p>會失去 Unity 那種在物件銷毀時自動停止 coroutine 的行為。Unity 的 Coroutine 會在其所屬的 <code>MonoBehaviour</code> 被停用／銷毀時自動停止；GDScript 的 <code>await</code> 沒有自動對應的機制，而在已釋放的節點上恢復 <code>await</code> 是已知的執行期錯誤。任何依賴這種自動停止行為的邏輯，都需要在 Godot 移植版本中寫入明確的保護機制（例如在 await 前後檢查 <code>is_instance_valid()</code>）。</p>
+
+<h2>後續追蹤／待日後確認的事項</h2>
+<ul>
+  <li>清點專案中每個呼叫點所使用的是 Unity 三種非同步機制（Coroutine／原生 async-Awaitable／UniTask）中的哪一種——正確的 Godot 端轉譯方式會依機制而有所不同。</li>
+  <li>確認 Unity 專案的版本：<code>Awaitable</code> 僅存在於 Unity 2023.1+；較舊的專案可能只有 Coroutine 加上 UniTask，而沒有原生的 <code>Awaitable</code> 可供比較。</li>
+  <li>在依賴 Godot 每影格的 await signal（<code>process_frame</code> 相對於物理影格的對應項目）來取代 <code>WaitForEndOfFrame</code>／<code>WaitForFixedUpdate</code> 模式之前，先對照目前 Godot 版本的官方文件確認其確切名稱／時機——此輪未獨立驗證。</li>
+  <li>檢查是否有透過 <code>ref</code> 參數或 callback 來偽造「回傳值」的 coroutine 程式碼——由於 GDScript 的 <code>await</code> 原生支援真正的回傳值，這種模式很可能可以簡化，而非逐字移植。</li>
+  <li>在遷移任何目前依賴 <code>StopCoroutine()</code> 或隱含的銷毀即停止語意的 coroutine 之前，先為 GDScript 設計好取消／銷毀保護（destroy-guard）模式。</li>
+  <li>若需要更多關於 <code>await</code> 執行模型的權威細節，可重新嘗試擷取 GDQuest 詞彙表頁面（此輪被 HTTP 403 封鎖）。</li>
+</ul>
+
+</div>
+</body>
+</html>

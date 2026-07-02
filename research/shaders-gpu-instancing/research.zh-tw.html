@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>著色器與 GPU Instancing（Unity）對比 著色器與 MultiMesh（Godot）</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background: #fafafa;
+    color: #1f2328;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", Helvetica, Arial, sans-serif;
+    line-height: 1.75;
+  }
+  .content {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+  h1 {
+    font-size: 1.85em;
+    border-bottom: 2px solid #d0d7de;
+    padding-bottom: 0.3em;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 1.4em;
+    border-bottom: 1px solid #d0d7de;
+    padding-bottom: 0.25em;
+    margin-top: 2em;
+  }
+  h3 {
+    font-size: 1.15em;
+    margin-top: 1.6em;
+  }
+  p, li {
+    font-size: 1em;
+  }
+  a {
+    color: #0969da;
+    text-decoration: none;
+    word-break: break-word;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    background: #eff1f3;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.92em;
+  }
+  pre {
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    padding: 16px;
+    overflow-x: auto;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.88em;
+    line-height: 1.6;
+    white-space: pre;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1.2em 0;
+    font-size: 0.95em;
+  }
+  th, td {
+    border: 1px solid #d0d7de;
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: #f6f8fa;
+  }
+  ul {
+    padding-left: 1.4em;
+  }
+  li {
+    margin-bottom: 0.4em;
+  }
+  strong {
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="content">
+
+<h1>著色器與 GPU Instancing（Unity）對比 著色器與 MultiMesh（Godot）</h1>
+
+<h2>官方來源</h2>
+<ul>
+  <li>Unity shader introduction：<a href="https://docs.unity3d.com/6000.0/Documentation/Manual/shader-introduction.html">https://docs.unity3d.com/6000.0/Documentation/Manual/shader-introduction.html</a></li>
+  <li>Unity GPU instancing shader example：<a href="https://docs.unity3d.com/6000.0/Documentation/Manual/gpu-instancing-vertex-fragment-shader-example.html">https://docs.unity3d.com/6000.0/Documentation/Manual/gpu-instancing-vertex-fragment-shader-example.html</a></li>
+  <li>Unity intro to GPU instancing：<a href="https://docs.unity3d.com/Manual/GPUInstancing.html">https://docs.unity3d.com/Manual/GPUInstancing.html</a></li>
+  <li>Godot Shader class：<a href="https://docs.godotengine.org/zh-tw/4.x/classes/class_shader.html">https://docs.godotengine.org/zh-tw/4.x/classes/class_shader.html</a></li>
+  <li>Godot MultiMesh class：<a href="https://docs.godotengine.org/en/stable/classes/class_multimesh.html">https://docs.godotengine.org/en/stable/classes/class_multimesh.html</a></li>
+  <li><code>share.google/aimode/3O5xK08gAxi0FDqKe</code> — <strong>無法擷取</strong>（與這份研究集先前的 aimode 連結遇到相同的已驗證工作階段（authenticated-session）重新導向問題）。尚未納入內容；如有需要請直接貼上內容。</li>
+</ul>
+
+<h2>Unity：著色器與 GPU Instancing</h2>
+<ul>
+  <li><strong>什麼是著色器（shader）</strong>：一支 GPU 程式。Unity 有三種類別：<strong>Graphics Pipeline Shaders</strong>（最常見的情況 —— 在一般渲染過程中計算像素顏色）、<strong>Compute Shaders</strong>（在圖形管線之外進行的一般 GPU 運算），以及 <strong>Ray Tracing Shaders</strong>。</li>
+  <li><strong>撰寫方式</strong>：<strong>ShaderLab</strong>（Unity 自有的宣告式語言，包裝實際的 HLSL 程式碼 —— 定義 Properties、SubShader/Pass 結構、Fallback）、<strong>Shader Graph</strong>（節點式、免程式碼的視覺化編寫方式），或直接手寫 HLSL。</li>
+  <li><strong>Material 的關係</strong>：<code>Shader</code> 是程式的容器；<code>Material</code> 參照一個 <code>Shader</code>，並提供實際餵入其中的屬性值（貼圖、顏色、浮點數）。</li>
+  <li><strong>GPU instancing</strong>：透過 <code>#pragma multi_compile_instancing</code> 依著色器選擇性啟用。每個實例（per-instance）的屬性會宣告在一個 instancing buffer 中：
+    <pre><code>UNITY_INSTANCING_BUFFER_START(Props)
+    UNITY_DEFINE_INSTANCED_PROP(float4, _Color)
+UNITY_INSTANCING_BUFFER_END(Props)</code></pre>
+    頂點輸入結構（vertex input struct）需要 <code>UNITY_VERTEX_INPUT_INSTANCE_ID</code>；頂點著色器（vertex shader）必須呼叫 <code>UNITY_SETUP_INSTANCE_ID(v)</code>（這是必要的 —— world matrices 依賴它）及 <code>UNITY_TRANSFER_INSTANCE_ID(v, o)</code> 以將 ID 傳遞到片段（fragment）階段；片段著色器則透過 <code>UNITY_ACCESS_INSTANCED_PROP(Props, _Color)</code> 讀取數值。
+    <ul>
+      <li>最小可行的 instanced shader（Built-in pipeline，ShaderLab/HLSL）：
+        <pre><code>Shader "Custom/InstancedColor"
+{
+    Properties { _Color ("Color", Color) = (1,1,1,1) }
+    SubShader { Pass {
+        CGPROGRAM
+        #pragma vertex vert
+        #pragma fragment frag
+        #pragma multi_compile_instancing
+        #include "UnityCG.cginc"
+
+        UNITY_INSTANCING_BUFFER_START(Props)
+            UNITY_DEFINE_INSTANCED_PROP(float4, _Color)
+        UNITY_INSTANCING_BUFFER_END(Props)
+
+        struct appdata { float4 vertex : POSITION; UNITY_VERTEX_INPUT_INSTANCE_ID };
+        struct v2f { float4 pos : SV_POSITION; UNITY_VERTEX_INPUT_INSTANCE_ID };
+
+        v2f vert(appdata v) {
+            v2f o;
+            UNITY_SETUP_INSTANCE_ID(v);
+            UNITY_TRANSFER_INSTANCE_ID(v, o);
+            o.pos = UnityObjectToClipPos(v.vertex);
+            return o;
+        }
+        fixed4 frag(v2f i) : SV_Target {
+            UNITY_SETUP_INSTANCE_ID(i);
+            return UNITY_ACCESS_INSTANCED_PROP(Props, _Color);
+        }
+        ENDCG
+    } }
+}</code></pre>
+      </li>
+      <li>一旦著色器支援此功能，且在 material 上勾選了「Enable GPU Instancing」，共用同一組 mesh + material 的<strong>一般 GameObject</strong> 就會被 Unity 的渲染器自動批次處理（batched）成較少的 draw call —— 不需要另外的、專屬於 instancing 的節點／物件類型。每個實例的數值（如上面的 <code>_Color</code>）通常是透過每個 renderer 的 <code>MaterialPropertyBlock</code> 來設定。</li>
+    </ul>
+  </li>
+</ul>
+
+<h2>Godot：著色器與 MultiMesh</h2>
+<ul>
+  <li><strong>什麼是著色器（shader）</strong>：一個以 Godot 自有著色語言（<code>.gdshader</code>，類似 GLSL 的語法、Godot 專屬的內建函式）撰寫的 <code>Shader</code> 資源。<code>shader_type</code> 宣告其目標對象：<code>spatial</code>（3D）、<code>canvas_item</code>（2D）、<code>particles</code>、<code>sky</code> 或 <code>fog</code>。</li>
+  <li><strong>Material 的關係</strong>：<code>ShaderMaterial</code> 參照一個 <code>Shader</code>，並透過 <code>set_shader_parameter()</code>／<code>get_shader_parameter()</code> 提供 uniform 數值 —— 程式碼中的 uniform 名稱必須完全相符。</li>
+  <li><strong>GPU instancing</strong>：這不是一個著色器旗標（flag），而是一個<strong>獨立的資源／節點類型</strong>：<code>MultiMesh</code>（透過 <code>MultiMeshInstance3D</code>／<code>MultiMeshInstance2D</code> 使用）。設定 <code>instance_count</code>，然後針對每個實例：<code>set_instance_transform()</code>、<code>set_instance_color()</code>（需要 <code>use_colors = true</code>），以及 <code>set_instance_custom_data()</code>（需要 <code>use_custom_data = true</code>；資料會被打包成一個 <code>Color</code>，也就是<strong>每個實例 4 個浮點數</strong>）。著色器則透過頂點階段內建的 <code>INSTANCE_CUSTOM</code> 讀取這些資料。
+    <ul>
+      <li>最小可行的 instanced shader（<code>.gdshader</code>）：
+        <pre><code>shader_type spatial;
+
+void vertex() {
+    // INSTANCE_CUSTOM.rgb holds up to 3 custom floats set via set_instance_custom_data()
+    COLOR = vec4(INSTANCE_CUSTOM.rgb, 1.0);
+}
+
+void fragment() {
+    ALBEDO = COLOR.rgb;
+}</code></pre>
+      </li>
+      <li>設定方式（GDScript）：
+        <pre><code>var multimesh := MultiMesh.new()
+multimesh.mesh = my_mesh
+multimesh.use_custom_data = true
+multimesh.instance_count = 1000
+
+for i in range(1000):
+    var t := Transform3D(Basis(), Vector3(i * 2.0, 0, 0))
+    multimesh.set_instance_transform(i, t)
+    multimesh.set_instance_custom_data(i, Color(randf(), randf(), randf(), 1.0))
+
+$MultiMeshInstance3D.multimesh = multimesh</code></pre>
+      </li>
+      <li><strong>文件中提到的注意事項</strong>：每個實例最多只有 4 個自訂浮點數（這是實際的容量限制）；一旦某個 MultiMesh 批次共用的光照預算（light budget）用盡，其餘的實例就不會再獲得進一步的照明；整個批次會被當作單一物件進行空間索引（distant instances 可能仍會被渲染，因而損及裁剪／culling 效果）；blend shapes 會被忽略。</li>
+    </ul>
+  </li>
+</ul>
+
+<h2>比較／對應關係</h2>
+<table>
+  <thead>
+    <tr><th>概念</th><th>Unity</th><th>Godot</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>著色器語言</td>
+      <td>透過 ShaderLab 包裝的 HLSL，或視覺化的 Shader Graph</td>
+      <td>Godot Shading Language（<code>.gdshader</code>，類似 GLSL）</td>
+    </tr>
+    <tr>
+      <td>管線目標設定</td>
+      <td>由目前使用中的渲染管線（Built-in/URP/HDRP）+ Pass 結構決定</td>
+      <td>透過 <code>shader_type</code> 明確指定：spatial/canvas_item/particles/sky/fog</td>
+    </tr>
+    <tr>
+      <td>Material 與 Shader 的連結</td>
+      <td><code>Material</code> → <code>Shader</code>，透過 Inspector／<code>MaterialPropertyBlock</code> 設值</td>
+      <td><code>ShaderMaterial</code> → <code>Shader</code>，透過 <code>set_shader_parameter()</code> 設值</td>
+    </tr>
+    <tr>
+      <td>Instancing 的啟用方式</td>
+      <td>依著色器選擇性啟用的旗標（<code>#pragma multi_compile_instancing</code>）；一般 GameObject 會自動批次處理</td>
+      <td>明確使用 <code>MultiMesh</code> 資源／節點 —— 這是完全不同的建構方式，而非一般節點上的旗標</td>
+    </tr>
+    <tr>
+      <td>每個實例的資料容量</td>
+      <td>型別化的 instancing buffer，主要受限於 GPU constant-buffer 大小（相對寬裕）</td>
+      <td>固定：transform + color + <strong>4 個浮點數</strong>的自訂資料（<code>INSTANCE_CUSTOM</code>）—— 一個明確且較小的上限</td>
+    </tr>
+    <tr>
+      <td>實例是否為完整的場景物件？</td>
+      <td>是 —— 每個實例仍是帶有元件（component）的一般 GameObject</td>
+      <td><strong>否</strong> —— MultiMesh 的實例純粹是渲染資料（緩衝區中的索引），而非 Node；沒有每個實例各自的腳本／物理／碰撞</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>兩個引擎為何如此設計</h2>
+<ul>
+  <li><strong>Unity</strong>：由於 Unity 的渲染器本來就把每個 <code>Renderer</code> 視為在共同管線中流動的獨立物件，GPU instancing 是以管線<em>最佳化</em>的方式疊加上去的：宣告著色器支援、在 material 上啟用，引擎便會在渲染時透明地將同 mesh／同 material 的 GameObject 批次處理。這讓場景編寫模型維持不變（仍是一般的 GameObject）—— 代價是每個著色器要設定 instancing 相當繁瑣（需要多個巨集），而且如果著色器變體（shader variant）或 material 不匹配，批次處理可能會悄悄地無法觸發。</li>
+  <li><strong>Godot</strong>：<code>MultiMesh</code> 是一個刻意獨立、明確的資源 —— 這與 Godot 一貫「用多少、付多少」（pay for what you use）的設計模式一致。選擇使用 instancing，代表你選擇進入一種真正不同的表示方式（資料存在緩衝區中，而非 Node），以此換取每個實例場景圖（scene-graph）便利性（沒有各自的訊號／物理／腳本）的犧牲，來獲得非常可預測、明確的效能。這也呼應了先前 <a href="../srp-urp-vs-renderingdevice-compositor/research.md">SRP/URP vs RenderingDevice/Compositor</a> 的研究發現：Godot 並不像 Unity 的 SRP 那樣支援可替換的自訂渲染管線，因此它也不需要類似 ShaderLab 那樣的間接層（indirection layer）——只要一種著色語言、直接綁定在引擎固定的渲染器上，就已足夠。</li>
+</ul>
+
+<h2>關鍵遷移風險</h2>
+<p>如果 Unity 專案中使用 GPU instancing 的物件<strong>同時也帶有各自的遊戲邏輯</strong>（碰撞體、腳本、每個 GameObject 各自的行為），直接搬移到 <code>MultiMesh</code> 會遺失這些東西 —— MultiMesh 的實例沒有各自的 Node 身分，因此沒有東西可以讓你在每個實例上掛載碰撞體／腳本。在這種情況下，正確的遷移方式是採用<strong>混合式（hybrid）</strong>做法：保留一個輕量的外部資料模型（例如一組 struct／Resource 陣列）來驅動遊戲邏輯，並另外將 transform／自訂資料每一影格或在變更時推送到 <code>MultiMesh</code>，純粹用於渲染。</p>
+
+<h2>後續追蹤事項／待日後確認</h2>
+<ul>
+  <li>確認專案中使用 instancing 的 GameObject 是否帶有各自的遊戲邏輯元件（碰撞體／腳本）—— 這將決定是否需要如上述遷移風險中所說的「混合式資料模型 + MultiMesh」做法。</li>
+  <li>盤點專案中使用 instancing 的著色器，除了 transform／color 之外實際用了多少每個實例的自訂資料 —— Godot 的 4 個浮點數上限，若需求更多，可能需要打包技巧（packing tricks）或以 instance ID 索引的獨立每實例資料貼圖（per-instance data texture）。</li>
+  <li>確認 Unity 專案中使用 instancing 的著色器是針對哪個渲染管線（Built-in/URP/HDRP）—— 這會影響確切的 HLSL 語法／include，也與 <a href="../srp-urp-vs-renderingdevice-compositor/research.md">SRP/URP research entry</a> 相關聯。</li>
+  <li>檢查 Unity 專案是否有使用 Shader Graph —— Godot 的視覺化著色器編輯器（<code>VisualShader</code>）是較接近的編寫工具對應物，若大量使用的話，可能值得建立獨立的研究項目。</li>
+</ul>
+
+</div>
+</body>
+</html>

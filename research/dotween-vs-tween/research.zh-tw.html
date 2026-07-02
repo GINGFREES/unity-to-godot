@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DOTween（Unity）vs Tween（Godot）</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #f7f7f8;
+    color: #1f2328;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", Helvetica, Arial, sans-serif;
+    line-height: 1.75;
+  }
+  .content {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+  h1 {
+    font-size: 1.9rem;
+    border-bottom: 2px solid #d0d7de;
+    padding-bottom: 0.5rem;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 1.4rem;
+    margin-top: 2.5rem;
+    border-bottom: 1px solid #d0d7de;
+    padding-bottom: 0.35rem;
+  }
+  ul {
+    padding-left: 1.5rem;
+  }
+  li {
+    margin-bottom: 0.4rem;
+  }
+  p {
+    margin: 0.8rem 0;
+  }
+  a {
+    color: #0969da;
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    background-color: rgba(175, 184, 193, 0.2);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  pre {
+    background-color: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    padding: 1rem;
+    overflow-x: auto;
+  }
+  pre code {
+    background-color: transparent;
+    padding: 0;
+    font-size: 0.88em;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1.2rem 0;
+    display: block;
+    overflow-x: auto;
+  }
+  th, td {
+    border: 1px solid #d0d7de;
+    padding: 0.6rem 0.8rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background-color: #f6f8fa;
+    font-weight: 600;
+  }
+  tr:nth-child(even) {
+    background-color: #fbfbfc;
+  }
+  strong {
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="content">
+
+<h1>DOTween（Unity）vs Tween（Godot）</h1>
+
+<h2>官方資料來源</h2>
+<ul>
+  <li>DOTween 文件：<a href="https://dotween.demigiant.com/documentation.php">https://dotween.demigiant.com/documentation.php</a></li>
+  <li>Godot Tween 類別：<a href="https://docs.godotengine.org/zh-tw/4.x/classes/class_tween.html">https://docs.godotengine.org/zh-tw/4.x/classes/class_tween.html</a></li>
+</ul>
+
+<h2>Unity：DOTween</h2>
+<ul>
+  <li><strong>用途</strong>：一套第三方（免費 + 付費「Pro」等級）的 tween 引擎，用來以直覺、可鏈式呼叫的 API 為數值／物件製作動畫。</li>
+  <li><strong>核心概念</strong>：個別的 <strong>Tweeners</strong> 為單一數值製作動畫；<strong>Sequences</strong> 則將多個 tween／回呼組合成一條時間軸，並支援巢狀結構。</li>
+  <li><strong>建立方式</strong>：可使用 Unity 型別上的捷徑方法（<code>transform.DOMoveX()</code>），或針對任意數值使用泛用的 getter/setter lambda tween。</li>
+  <li><strong>鏈式呼叫慣例</strong>：<code>DO*</code> 建立一個 tween、<code>Set*</code> 設定它、<code>On*</code> 附加回呼——例如 <code>transform.DOMoveX(4, 1).SetLoops(2, LoopType.Yoyo)</code>。</li>
+  <li><strong>數值型別</strong>：float、double、int、向量（vectors）、四元數（quaternions）、顏色、字串，並可透過外掛支援自訂型別。</li>
+  <li><strong>迴圈</strong>：Restart、<strong>Yoyo</strong>（每個循環先反向播放再正向播放）、以及 Incremental（數值隨每個循環持續累加）。</li>
+  <li><strong>緩動（Ease）</strong>：單一統一的 <code>Ease</code> 列舉（例如 <code>OutQuad</code>、<code>InOutQuint</code>），或自訂 <code>AnimationCurve</code>／函式。</li>
+  <li><strong>回呼</strong>：<code>OnStart</code>、<code>OnComplete</code>、<code>OnKill</code>、<code>OnPlay</code>、<code>OnPause</code>、<code>OnRewind</code>，直接附加在 tween／sequence 上。</li>
+  <li><strong>生命週期安全性</strong>：可選用的「Safe Mode」會自動處理目標物件被銷毀時的 tween。</li>
+  <li><strong>DOTween Pro</strong>（付費）：新增像是螺旋 tween 及 2D Toolkit 整合等額外功能。</li>
+</ul>
+
+<h2>Godot：Tween</h2>
+<ul>
+  <li><strong>用途</strong>：內建、輕量、以腳本驅動的動畫系統，用來隨時間對數值做插值——不需要第三方素材。相較於 <code>AnimationPlayer</code>，官方將其定位為更高效能的替代方案，適合用在簡單／動態的動畫上（例如事先未知的數值）。</li>
+  <li><strong>建立方式</strong>：呼叫 <code>some_node.create_tween()</code>，接著串接 <code>tween_property()</code>（為物件屬性製作動畫）、<code>tween_method()</code>（每一步以插值後的數值呼叫函式）、<code>tween_callback()</code>（在序列的某一步觸發任意函式）、<code>tween_interval()</code>（一個計時延遲步驟）。</li>
+  <li><strong>排序（Sequencing）</strong>：各步驟預設<strong>依序執行</strong>；<code>.parallel()</code> 會讓某個步驟與前一步同時執行；<code>.chain()</code> 則在 parallel 群組之後明確回到依序執行。</li>
+  <li><strong>Ease／Transition</strong>：結合兩個獨立的列舉——<code>TransitionType</code>（LINEAR、SINE、ELASTIC、BOUNCE、QUAD……）與 <code>EaseType</code>（IN、OUT、IN_OUT、OUT_IN）——而非 DOTween 那種單一統一的 <code>Ease</code> 列舉。</li>
+  <li><strong>迴圈</strong>：<code>set_loops(count)</code>（不帶參數表示無限次）。</li>
+  <li><strong>控制</strong>：<code>play()</code>／<code>pause()</code>、<code>stop()</code>（重置但不移除 tweeners）、<code>kill()</code>（中止並使其失效）。</li>
+  <li><strong>重要注意事項（來自官方文件）</strong>：
+    <ul>
+      <li>Tween <strong>並非設計成可重複使用</strong>——每個動畫都應建立新的 <code>Tween</code>。</li>
+      <li>Tween 建立後會<strong>立即開始</strong>——只有在動畫真正應該開始時才建立它。</li>
+      <li>避免讓兩個 tween 同時對同一個屬性做動畫——最後建立的那一個會生效。</li>
+      <li>將 tween 綁定到某個節點（生命週期管理），以避免它比其動畫對象存活更久。</li>
+    </ul>
+  </li>
+</ul>
+
+<h2>比較／對應表</h2>
+<table>
+  <thead>
+    <tr>
+      <th>DOTween</th>
+      <th>Godot Tween</th>
+      <th>備註</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>transform.DOMoveX(4, 1)</code></td>
+      <td><code>create_tween().tween_property(node, "position:x", 4, 1)</code></td>
+      <td>Godot 使用原生的屬性路徑（property-path）反射機制，而非各型別專屬的捷徑方法</td>
+    </tr>
+    <tr>
+      <td><code>Sequence().Append().Join().AppendCallback()</code></td>
+      <td>預設的依序鏈結 + <code>.parallel()</code> + <code>tween_callback()</code></td>
+      <td>Godot 將「sequence」建模為單一 Tween 的預設行為，而非另一種獨立的物件型別</td>
+    </tr>
+    <tr>
+      <td><code>Ease</code> 列舉（單一）</td>
+      <td><code>TransitionType</code> + <code>EaseType</code>（成對）</td>
+      <td>遷移時每種緩動曲線都需要一份對照表</td>
+    </tr>
+    <tr>
+      <td><code>SetLoops(n, LoopType.Yoyo)</code></td>
+      <td><code>set_loops(n)</code></td>
+      <td>Godot 原生是否支援乒乓（Yoyo）尚未確認——見後續追蹤事項</td>
+    </tr>
+    <tr>
+      <td><code>OnStart/OnComplete/OnKill/OnPlay/OnPause/OnRewind</code></td>
+      <td><code>finished</code> / <code>loop_finished</code> / <code>step_finished</code> 信號 + <code>tween_callback()</code> 步驟</td>
+      <td>典範不同：DOTween 將生命週期回呼附加在 tween 上；Godot 則將部分視為序列步驟，部分視為信號</td>
+    </tr>
+    <tr>
+      <td>Safe Mode（自動處理已銷毀的目標）</td>
+      <td><code>bind_node()</code></td>
+      <td>目標相同，機制不同</td>
+    </tr>
+    <tr>
+      <td>DOTween Pro 額外功能（螺旋、punch/shake、2D Toolkit）</td>
+      <td>（無內建對應功能）</td>
+      <td>需要以 <code>tween_method()</code> 手動實作</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>回答可能會被問到的問題</h2>
+
+<p><strong>1. Godot 是否有內建的 DOTween 對應方案？</strong><br>
+有——<code>Tween</code> 是引擎原生功能（不需要素材／外掛），且涵蓋相同的核心範疇：屬性 tweening、排序、緩動／過渡曲線、迴圈以及回呼。</p>
+
+<p><strong>2. DOTween Pro 的額外功能是否有涵蓋到？</strong><br>
+沒有直接涵蓋。螺旋 tween、punch/shake 捷徑，以及 2D Toolkit 整合都是 DOTween Pro 特有的功能；如果專案有使用這些功能，就需要在 Godot 中手動實作（通常是透過 <code>tween_method()</code> 驅動一個自訂的插值函式）。</p>
+
+<p><strong>3. 哪些 API 差異對遷移來說真正重要？</strong></p>
+<ul>
+  <li>緩動統一化：建立一份對照表，將專案中使用到的每個 DOTween <code>Ease</code> 值對應到一組 Godot 的 <code>TransitionType</code>+<code>EaseType</code>。</li>
+  <li>迴圈／Yoyo：確認 <code>set_loops()</code> 是否原生支援乒乓效果，還是只會重複正向播放（見後續追蹤事項）——可能需要為每個循環手動撰寫一個正向步驟加上一個反向步驟。</li>
+  <li>生命週期回呼：DOTween 那六個細緻的回呼並不會與 Godot 的三個信號一對一對應；有些（例如序列中途的 <code>OnComplete</code>）用 <code>tween_callback()</code> 步驟來表達會比用 Tween 層級的信號更合適。</li>
+  <li>物件銷毀的安全性：將對 DOTween Safe Mode 的依賴替換為明確呼叫 <code>bind_node()</code>。</li>
+</ul>
+
+<p><strong>4. 整體遷移的大致樣貌</strong><br>
+大多數 DOTween 呼叫在概念上都能一對一轉換——捷徑方法或泛用 tween 會變成 <code>create_tween().tween_property(...)</code>，而 DOTween 的 <code>Sequence</code> 會變成單一 Godot <code>Tween</code> 的預設依序鏈結，並在原本 DOTween 使用 <code>.Join()</code> 的地方插入 <code>.parallel()</code>。</p>
+
+<h2>後續追蹤事項／待日後確認</h2>
+<ul>
+  <li>確認 Godot 的 <code>set_loops()</code> 是否原生支援 Yoyo／乒乓迴圈，還是只會正向重複——目前擷取到的文件片段尚未確立此點，在假設其與 <code>LoopType.Yoyo</code> 等效之前需先驗證。</li>
+  <li>盤點專案實際上對哪些 DOTween 數值型別／外掛做 tween（標準的 float／向量／顏色，還是自訂外掛型別）——Godot 以屬性為基礎的 tweening 可直接涵蓋 Godot 原生型別；自訂型別可能需要使用 <code>tween_method()</code>。</li>
+  <li>確認專案中是否真的有使用到 DOTween Pro 的功能（螺旋 tween、punch/shake、2D Toolkit）。</li>
+  <li>檢查 Unity 程式碼中是否有逐畫格／高頻率建立 tween 的模式——Godot 明確不鼓勵隨意重複使用／重新建立 tween，因此在 DOTween 中運作良好的模式，在 Godot「每個動畫建立新 Tween」的模型下可能需要重新思考。</li>
+</ul>
+
+</div>
+</body>
+</html>

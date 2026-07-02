@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C# 疊代器／LINQ 延遲執行（Unity）與 Array（Godot）的比較</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    line-height: 1.75;
+    color: #222;
+    background-color: #fff;
+    margin: 0;
+    padding: 0;
+  }
+  .content {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+  h1 {
+    font-size: 1.8rem;
+    border-bottom: 2px solid #333;
+    padding-bottom: 0.5rem;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 1.4rem;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 0.3rem;
+    margin-top: 2.5rem;
+  }
+  h3 {
+    font-size: 1.15rem;
+    margin-top: 1.8rem;
+  }
+  p {
+    margin: 0.8rem 0;
+  }
+  ul, ol {
+    padding-left: 1.6rem;
+  }
+  li {
+    margin: 0.4rem 0;
+  }
+  li > ul, li > ol {
+    margin-top: 0.4rem;
+  }
+  a {
+    color: #0b5fae;
+    text-decoration: none;
+    word-break: break-word;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  code {
+    font-family: "SF Mono", Menlo, Consolas, "Courier New", monospace;
+    background-color: #f2f2f2;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.92em;
+  }
+  pre {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 1rem;
+    overflow-x: auto;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.9em;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1.2rem 0;
+    font-size: 0.95rem;
+  }
+  th, td {
+    border: 1px solid #ccc;
+    padding: 0.6rem 0.8rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background-color: #f0f0f0;
+  }
+  tr:nth-child(even) td {
+    background-color: #fafafa;
+  }
+  strong {
+    font-weight: 600;
+  }
+  em {
+    font-style: italic;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 2rem 0;
+  }
+</style>
+</head>
+<body>
+<div class="content">
+
+<h1>C# 疊代器／LINQ 延遲執行（Unity）與 Array（Godot）的比較</h1>
+
+<h2>官方資料來源</h2>
+<ul>
+  <li>Godot Array 類別：<a href="https://docs.godotengine.org/zh-tw/4.x/classes/class_array.html">https://docs.godotengine.org/zh-tw/4.x/classes/class_array.html</a></li>
+  <li>C# 疊代器（<code>yield return</code>）：<a href="https://learn.microsoft.com/zh-tw/dotnet/csharp/programming-guide/concepts/iterators">https://learn.microsoft.com/zh-tw/dotnet/csharp/programming-guide/concepts/iterators</a></li>
+  <li>LINQ 延遲執行／惰性求值：<a href="https://learn.microsoft.com/bg-bg/dotnet/standard/linq/deferred-execution-lazy-evaluation">https://learn.microsoft.com/bg-bg/dotnet/standard/linq/deferred-execution-lazy-evaluation</a></li>
+  <li><a href="https://share.google/aimode/3VKdfWDRepL4PMjU4">share.google/aimode/3VKdfWDRepL4PMjU4</a> — <strong>無法擷取</strong>，會重新導向到需要登入的 Google AI Mode 工作階段（與先前被擋下的 aimode 連結情況相同）。未納入本文內容；若確實需要，請直接貼上內容。</li>
+</ul>
+
+<h2>Unity/C#：疊代器與 LINQ</h2>
+<ul>
+  <li><strong>疊代器（<code>yield return</code>）</strong>：使用 <code>yield return</code> 的方法會被編譯器轉換成一個狀態機，回傳 <code>IEnumerable</code>／<code>IEnumerator</code>。執行方式是<strong>惰性（lazy）</strong>的：每次 <code>foreach</code> 的一個步驟，都會從上次暫停的地方繼續執行該方法，而不是一次把整個序列算完。這使得無限序列、分頁序列，以及把複雜的清單建構邏輯封裝在一個簡單且支援 <code>foreach</code> 的介面背後成為可能。</li>
+  <li><strong>LINQ 延遲執行</strong>：LINQ 查詢變數在定義時並不會被求值，只有在被列舉（<code>foreach</code>、<code>ToList()</code>、<code>.First()</code> 等）時才會求值。這是建立在同一套疊代器機制之上的。
+    <ul>
+      <li><em>惰性（Lazy）</em>運算子（<code>Where</code>、<code>Select</code>……）每次拉取一個元素時才處理，隨著被消費而逐一求值。</li>
+      <li><em>積極（Eager）</em>運算子（<code>OrderBy</code>、<code>ToList</code>、<code>ToArray</code>，某些情況下的 <code>Count</code>）在回傳任何結果之前，必須先具象化／處理完整個來源（例如 <code>OrderBy</code> 必須看過所有元素才能排序）。</li>
+      <li>延遲加上惰性的執行方式會「平均分攤負擔」，並可以避免在鏈式呼叫中具象化中介集合——對於大型集合上的鏈式運算來說，這是實際的效能優勢，並且能實現短路求值（例如 <code>.Where(...).First()</code> 可以在第一個符合項目後就停止，不需碰觸其餘的元素）。</li>
+      <li><strong>需注意的陷阱</strong>：由於求值是延遲的，重新列舉同一個查詢會重新執行一次——如果在定義查詢與列舉查詢之間，來源資料發生了變動，結果會反映<em>當下</em>的狀態，而不是定義當時的快照。這是一種常見且不易察覺的臭蟲來源。</li>
+    </ul>
+  </li>
+  <li><strong>Set 專用工具</strong>：<code>HashSet&lt;T&gt;</code>（真正的 Set 抽象資料型別，平均 O(1) 的成員檢查）以及 LINQ 中以 Set 為概念的運算子 <code>Distinct()</code>／<code>Union()</code>／<code>Intersect()</code>／<code>Except()</code>（以雜湊為基礎，同樣是延遲執行）。</li>
+</ul>
+
+<h2>Godot：Array</h2>
+<ul>
+  <li><strong>用途</strong>：Godot 的通用序列容器。共有三種變體：未型別化的（<code>Array</code>，可存放任意 Variant，最有彈性但疊代速度最慢）、型別化的（<code>Array[int]</code>，速度較快且具型別安全）、以及 Packed 型別（<code>PackedInt32Array</code>、<code>PackedVector2Array</code> 等——針對特定型別最快且最省記憶體，但便利方法較少）。</li>
+  <li><strong>函式風格的方法</strong>：<code>filter(method)</code>、<code>map(method)</code>、<code>reduce(method, accum)</code>、<code>any(method)</code>、<code>all(method)</code>、<code>find_custom(method, from)</code>。
+    <ul>
+      <li><strong>這些方法全部都是積極（eager）的</strong>——每次呼叫都會立即完整處理／具象化出結果。GDScript 的 <code>Array</code> API 中並沒有延遲／惰性的鏈式組合：<code>arr.filter(a).map(b)</code> 會先完整建立出經過過濾的陣列，然後 <code>map</code> 才開始執行，這與 LINQ 的 <code>.Where(a).Select(b)</code> 鏈式呼叫不同，後者在每次疊代時會讓一個元素依序通過這兩個步驟。</li>
+      <li><code>any()</code>／<code>all()</code> 內部確實會做短路求值（一旦得到確定的結果就停止）——但這只是單一方法層級的最佳化，並不是像 LINQ 那樣跨多個運算子組合而成的整條鏈式惰性求值。</li>
+    </ul>
+  </li>
+  <li><strong>沒有原生的產生器／自訂疊代器語言關鍵字</strong>：Godot 4 以 <code>await</code> 取代了 Godot 3 的 <code>yield()</code>，但 <code>await</code> 是以信號（signal）為基礎的非同步機制，而非通用的惰性序列產生器。GDScript 中沒有直接對應到「用 <code>yield return</code> 撰寫方法，在每次迴圈步驟中惰性產生數值」的寫法。</li>
+  <li><strong>沒有原生的 Set 型別</strong>：官方文件中沒有提到把 <code>Array</code> 當作 Set 使用，也沒有專屬的 <code>Set</code> 類別。<code>Array.has()</code>／<code>find()</code> 都是 O(n) 的線性掃描。在 Godot 中，慣用的快速查找替代方案是把 <strong><code>Dictionary</code></strong> 當作 Set 使用（成員作為鍵，值則被忽略或設為 <code>true</code>），可提供平均 O(1) 的成員檢查——這才是更接近 <code>HashSet&lt;T&gt;</code> 的對應物，而不是 <code>Array</code>。</li>
+  <li><strong>其他需注意事項</strong>：在疊代過程中刪除元素是不受支援且行為不可預期的；陣列是以參照方式傳遞的（若需要獨立副本請使用 <code>duplicate()</code>）；GDScript 中的 <code>const</code> 陣列會自動成為唯讀。</li>
+</ul>
+
+<h2>比較／對應關係</h2>
+<table>
+  <thead>
+    <tr>
+      <th>C#/Unity</th>
+      <th>Godot</th>
+      <th>備註</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>HashSet&lt;T&gt;</code>，或 LINQ 的 <code>.Distinct()</code>／<code>.Union()</code>／<code>.Intersect()</code>／<code>.Except()</code></td>
+      <td>把 <code>Dictionary</code> 當作 Set 使用（鍵 = 成員）</td>
+      <td><strong>不是</strong> <code>Array</code>——<code>Array.has()</code> 是 O(n)，<code>Dictionary</code> 查找則是 O(1)</td>
+    </tr>
+    <tr>
+      <td><code>List&lt;T&gt;</code> + LINQ 的 <code>.Where()</code>／<code>.Select()</code> 鏈式呼叫</td>
+      <td><code>Array</code> + <code>.filter()</code>／<code>.map()</code></td>
+      <td>概念上相似，但 Godot 的版本是積極求值，而非惰性延遲求值</td>
+    </tr>
+    <tr>
+      <td>LINQ 延遲／惰性鏈式呼叫（低成本的組合方式、透過 <code>.First()</code> 短路求值）</td>
+      <td><em>（沒有對應物）</em></td>
+      <td>必須手動改寫成明確的迴圈，搭配提前 <code>break</code>／<code>return</code> 才能達到相同的短路效益</td>
+    </tr>
+    <tr>
+      <td>自訂 <code>yield return</code> 疊代器（惰性／分頁／無限序列）</td>
+      <td><em>（沒有語言層級的對應物）</em></td>
+      <td>需要手刻一個具備手動狀態管理的類別；請確認目前 Godot 版本對自訂疊代器協定的支援情況（見後續追蹤事項）</td>
+    </tr>
+    <tr>
+      <td><code>List&lt;int&gt;</code>、<code>Vector2[]</code> 等（型別化的泛型集合）</td>
+      <td>型別化的 <code>Array[int]</code> 或 Packed 陣列（<code>PackedInt32Array</code>、<code>PackedVector2Array</code>）</td>
+      <td>比起純粹未型別化的 <code>Array</code>，優先選用這些型別以取得更接近的效能與型別安全對等性</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>回答「在 Godot/GDScript 中處理 Set，哪種方式比較好」</h2>
+
+<p>這取決於此處所指的「Set」是哪一種意涵：</p>
+
+<h3>如果「Set」指的是 Set 抽象資料型別（唯一性、快速的成員檢查）：</h3>
+<p>請使用 <strong><code>Dictionary</code></strong>（把鍵當作成員，值則忽略不用）——而不是 <code>Array</code>。這是 C# 的 <code>HashSet&lt;T&gt;</code> 或 LINQ 的 <code>Distinct</code>／<code>Union</code>／<code>Intersect</code>／<code>Except</code> 用法，直接且正確的遷移目標。<code>Array</code> 本質上是清單；若用它來實現 Set 語意，代表每次成員檢查都要承擔 O(n) 的成本。</p>
+
+<h3>如果「Set」指的是一般性的項目集合／資料集合（較有可能的解讀）：</h3>
+<p><code>Array</code> 的 <code>filter()</code>／<code>map()</code>／<code>reduce()</code> 對於一次性或非熱路徑的邏輯來說，是 LINQ 的 <code>Where()</code>／<code>Select()</code>／<code>Aggregate()</code> 一個合理且可讀性佳的替代方案。但它們是<strong>積極求值</strong>的，因此：</p>
+<ul>
+  <li>對大型集合進行長串運算子鏈式呼叫時，每一步都會完整具象化，而 LINQ 原本可能保持惰性，避免產生中介配置。</li>
+  <li>任何依賴短路求值（一旦找到足夠的結果就提前停止）的程式碼都沒有現成的對應物，需要改寫成搭配 <code>break</code> 的明確迴圈。</li>
+  <li>任何依賴延遲執行「重新列舉即可反映當下狀態」行為的程式碼都需要重新設計；Godot 並沒有可供延遲求值的查詢物件概念。</li>
+  <li>對於熱路徑／每影格執行的程式碼而言，LINQ 鏈式呼叫<em>與</em> <code>Array</code> 的函式風格方法，相較於手寫迴圈都帶有實質的每次呼叫額外開銷（委派／<code>Callable</code> 呼叫成本）——這項取捨在兩個引擎之間是對稱的，並不構成偏好其中一方的理由。在效能關鍵的程式碼中，無論在哪一側，都應優先選用明確的迴圈。</li>
+</ul>
+
+<h2>結論與建議</h2>
+<ol>
+  <li><strong>不要把 <code>Array</code> 當成 <code>HashSet&lt;T&gt;</code> 的替代品。</strong>如果要遷移原本使用 <code>HashSet&lt;T&gt;</code> 或 LINQ 的 Set 運算子來實現真正 Set 語意的程式碼，應該改用 Godot 中「把 <code>Dictionary</code> 當作 Set」的做法——這是唯一一個無論考不考慮積極／惰性求值，<code>Array</code> 都是錯誤工具的情況。</li>
+  <li><strong>對於一般的「LINQ 操作清單」程式碼，<code>Array</code> 的函式風格方法在可讀性上是可以接受的</strong>，但要預先評估行為上的差異：沒有延遲執行、沒有跨鏈式呼叫的短路求值、也沒有「重新列舉即反映變動」的語意。任何依賴這些 LINQ 特有行為的程式碼，都需要改寫成明確的迴圈，而不能只是機械式地把 <code>.Where()</code> 換成 <code>.filter()</code>。</li>
+  <li><strong>優先選用型別化／Packed 陣列</strong>（<code>Array[T]</code> ／ <code>PackedXArray</code>），而不是未型別化的 <code>Array</code>，當原本來源使用的是 <code>List&lt;T&gt;</code>／型別化陣列時——可取得更接近的效能與型別安全對等性。</li>
+  <li><strong>自訂的惰性產生器（以 <code>yield return</code> 為基礎）在 GDScript 中沒有直接對應物</strong>——請規劃以明確狀態手刻實作這類邏輯，並且在假設能夠乾淨移植之前，先確認目前 Godot 版本提供了哪些自訂疊代器支援（若有的話）。</li>
+  <li><strong>在熱路徑中，應同時避免 LINQ 鏈式呼叫與 <code>Array</code> 的函式風格方法</strong>——無論在哪一側撰寫程式碼，都改用明確的迴圈。這是雙方共通的最佳實務，而不是偏袒任何一個生態系的論點。</li>
+</ol>
+
+<h2>後續追蹤／待確認事項</h2>
+<ul>
+  <li>確認這個專案脈絡中所謂的「Set」，究竟是指 Set 抽象資料型別還是一般性的集合——這會決定上述哪一節內容才真正適用於正在遷移的程式碼。</li>
+  <li>確認目前的 Godot 版本是否支援自訂疊代器協定（例如 <code>_iter_init</code>／<code>_iter_next</code>／<code>_iter_get</code> 風格的方法），可用來在 GDScript 中建構惰性／自訂序列——這一點在這次擷取的官方文件中尚未獲得證實。</li>
+  <li>盤點專案中實際使用了哪些具體的 LINQ 運算子／模式，以及使用位置（熱路徑 vs. 初始化／編輯器程式碼）——這將決定需要改寫成明確迴圈的比例，相對於可直接對應轉換成 <code>Array</code> 方法的比例。</li>
+  <li>檢查是否有程式碼依賴 LINQ 延遲執行／重新列舉的語意（查詢定義一次，但針對持續變動的來源多次列舉）——這類程式碼需要明確地重新設計，而不是單純翻譯轉換。</li>
+</ul>
+
+</div>
+</body>
+</html>
