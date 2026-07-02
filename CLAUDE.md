@@ -62,6 +62,7 @@ unity-to-godot/
 8. Shaders & GPU Instancing → Shaders & MultiMesh
 9. Audio (Unity) → Audio (Godot)
 10. Animation (Mecanim/Legacy) → Animation (AnimationPlayer/AnimationTree), plus Video/Movie Recording
+11. DOTS/ECS → Third-Party ECS Options (godot-ecs / flecs bridges)
 
 All are in the **research-only** stage — none have a `MILESTONE.md` yet.
 `ROADMAP.md`'s "Open items across all technologies" section tracks exactly

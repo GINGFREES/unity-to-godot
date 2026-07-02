@@ -253,6 +253,19 @@
   </li>
 </ul>
 
+<h3>11. DOTS/ECS → 第三方 ECS 方案（godot-ecs／flecs 橋接）</h3>
+<ul>
+  <li>資料夾：<a href="dots-ecs-vs-godot-ecs-flecs/">research/dots-ecs-vs-godot-ecs-flecs/</a></li>
+  <li>重點：
+    <ul>
+      <li>Godot 沒有官方／內建的 ECS；目前存在三種第三方策略：<code>godot-ecs</code>（純 GDScript 實作，僅提供架構組織上的好處）、<code>flecs</code>（原生 C 語言的 ECS 核心，本身不含 Godot 整合），以及 flecs-Godot 橋接方案（Stagehand／Glecs／godot-turbo——透過 GDExtension／module 專案，將高頻邏輯放在 C++ 中，GDScript 僅作為膠合層）。</li>
+      <li><strong>沒有任何方案能在「以 GDScript 撰寫模擬邏輯」的前提下，提供與 Unity DOTS 相當的原始吞吐量（raw throughput）</strong>——GDScript 沒有對應 Burst 的編譯器，因此這種組合在目前調查過的生態系中並不存在。</li>
+      <li>結論：應先確認實際需要 ECS 的<em>目的</em>為何——若目的是架構層面（資料／邏輯分離），<code>godot-ecs</code> 即符合需求，且為 GDScript 原生；若目的是追求原始吞吐量的對等性，則需要採用搭配 C++ 高頻邏輯路徑的 flecs 橋接方案；較現實的預設做法是混合式（僅在真正需要規模化的子系統使用 flecs 橋接，其餘部分維持一般的 Node／GDScript），這也與 Unity 自身「ECS 與 GameObject 並存」的指引相呼應。</li>
+      <li>狀態：研究與結論皆已完成；需確認專案 DOTS 使用的實際規模與目的，評估 3 種 flecs-Godot 橋接方案的成熟度（透過搜尋找到，尚未深入驗證），以及若真的需要吞吐量對等性，需確認團隊對於在建置流程中引入 C++ 的接受程度。</li>
+    </ul>
+  </li>
+</ul>
+
 <div class="comment-block">後續的技術項目依相同格式加入於此：
 ### N. &lt;Unity 技術&gt; → &lt;Godot 技術&gt;
 - 資料夾：research/&lt;slug&gt;/
@@ -273,6 +286,7 @@
   <li>Shaders／GPU Instancing：尚未確認被 instance 化的物件是否帶有逐物件的遊戲邏輯（碰撞體／腳本）；尚未確認逐實例自訂資料量相對於 Godot 4-float 上限的情況；尚未確認目標 Unity 渲染管線為何。</li>
   <li>Audio：尚未確認 Godot 對應的 AudioListener 機制與麥克風／音訊輸入 API；尚未確認實際使用了哪些 AudioMixer 功能；尚未確認節奏遊戲等級的同步需求；尚未確認 Web 匯出目標平台。</li>
   <li>Animation：尚未確認專案使用的是 Mecanim、Legacy，還是兩者皆有；尚未確認 Godot 4.x 的類人型（humanoid）retargeting 能力（需要另外進行專門的後續研究）；尚未確認 Animation Layers／Avatar Masks、Synced Layers、執行期 2D IK、Playables API，以及 root-motion／NavMeshAgent 協調邏輯的使用情況；尚未確認現有影片素材的編碼格式（Theora 轉碼範圍），以及是否真的需要遊戲內錄製功能。</li>
+  <li>DOTS／ECS：尚未確認專案 DOTS 使用的實際規模與目的（架構考量 vs. 原始吞吐量）；尚未確認 3 種 flecs-Godot 橋接方案（Stagehand／Glecs／godot-turbo）的成熟度；若真的需要吞吐量對等性，尚未確認團隊對建置流程中引入 C++ 的接受程度；尚未確認 Burst 編譯系統中 SIMD／向量化數學運算的使用情況。</li>
 </ul>
 
 </div>

@@ -112,6 +112,14 @@ used to build the top-level `CLAUDE.md`.
   - Movie/recording: neither engine has a built-in in-game/player-facing recorder — Unity Recorder is editor-only, Godot's Movie Maker mode is deterministic/non-real-time — this is parity, not a migration gap.
   - Status: research done (large chapter, both engines' docs + several linked sub-pages covered); several real follow-ups remain, see below.
 
+### 11. DOTS/ECS → Third-Party ECS Options (godot-ecs / flecs bridges)
+- Folder: [research/dots-ecs-vs-godot-ecs-flecs/](dots-ecs-vs-godot-ecs-flecs/)
+- Main points:
+  - Godot has no official/built-in ECS; three third-party strategies exist: `godot-ecs` (pure GDScript, organizational benefits only), `flecs` (native C ECS core, no Godot integration by itself), and flecs-Godot bridges (Stagehand/Glecs/godot-turbo — GDExtension/module projects putting hot logic in C++ with GDScript as a glue layer only).
+  - **No option provides Unity-DOTS-equivalent raw throughput with the simulation logic written in GDScript** — GDScript has no Burst-equivalent compiler, so that combination doesn't exist in the ecosystem surveyed.
+  - Conclusion: decide what ECS is actually needed *for* first — if it's architectural (data/logic separation), `godot-ecs` fits and is GDScript-native; if it's raw throughput parity, a flecs bridge with C++ hot-path logic is required; a hybrid (flecs bridge only for the subsystems that need scale, ordinary Nodes/GDScript elsewhere) is the realistic default, mirroring Unity's own ECS+GameObject coexistence guidance.
+  - Status: research + conclusion done; need to confirm actual scale/purpose of the project's DOTS usage, evaluate the 3 flecs-Godot bridges' maturity (surfaced via search, not deeply vetted), and confirm team tolerance for C++ in the build if throughput parity is actually needed.
+
 <!-- Next technology entries go here, same format:
 ### N. <Unity tech> → <Godot tech>
 - Folder: research/<slug>/
@@ -131,3 +139,4 @@ used to build the top-level `CLAUDE.md`.
 - Shaders/GPU Instancing: unconfirmed whether instanced objects carry per-object gameplay logic (colliders/scripts); unconfirmed per-instance custom-data volume vs Godot's 4-float cap; unconfirmed target Unity render pipeline.
 - Audio: unconfirmed Godot AudioListener equivalent and microphone/audio-input API; unconfirmed which AudioMixer features are used; unconfirmed rhythm-game-level sync needs; unconfirmed Web export target.
 - Animation: unconfirmed whether project uses Mecanim, Legacy, or both; unconfirmed Godot 4.x humanoid retargeting capability (needs dedicated follow-up research); unconfirmed usage of Animation Layers/Avatar Masks, Synced Layers, runtime 2D IK, Playables API, and root-motion/NavMeshAgent reconciliation logic; unconfirmed existing video asset codecs (Theora-transcoding scope) and whether in-game recording is actually needed.
+- DOTS/ECS: unconfirmed actual scale/purpose of project's DOTS usage (architectural vs raw throughput); unconfirmed maturity of the 3 flecs-Godot bridges (Stagehand/Glecs/godot-turbo); unconfirmed team tolerance for C++ in the build pipeline if throughput parity is needed; unconfirmed SIMD/vectorized-math usage in Burst-compiled systems.

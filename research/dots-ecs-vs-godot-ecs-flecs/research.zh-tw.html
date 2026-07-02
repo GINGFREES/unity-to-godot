@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DOTS/ECS（Unity）vs 第三方 ECS 選項（Godot）——以及 GDScript vs C# 的問題</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #1e1e1e;
+    color: #dcdcdc;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    line-height: 1.75;
+  }
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+  h1 {
+    font-size: 1.75em;
+    line-height: 1.4;
+    border-bottom: 2px solid #4a90d9;
+    padding-bottom: 0.5em;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 1.35em;
+    margin-top: 2.2em;
+    color: #6fb3ff;
+    border-bottom: 1px solid #3a3a3a;
+    padding-bottom: 0.3em;
+  }
+  h3 {
+    font-size: 1.1em;
+    margin-top: 1.8em;
+    color: #9cd0ff;
+  }
+  p {
+    margin: 1em 0;
+  }
+  ul, ol {
+    padding-left: 1.6em;
+  }
+  li {
+    margin: 0.6em 0;
+  }
+  a {
+    color: #6fb3ff;
+    text-decoration: none;
+    word-break: break-all;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  code {
+    background-color: #2d2d2d;
+    color: #f0c674;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: "SF Mono", Consolas, Menlo, monospace;
+    font-size: 0.92em;
+  }
+  strong {
+    color: #ffffff;
+  }
+  .note {
+    color: #999;
+    font-size: 0.95em;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>DOTS/ECS（Unity）vs 第三方 ECS 選項（Godot）——以及 GDScript vs C# 的問題</h1>
+
+<h2>官方／參考資料來源</h2>
+<ul>
+  <li>Unity Entities package（DOTS/ECS）：<a href="https://docs.unity3d.com/Packages/com.unity.entities@1.0/manual/index.html">https://docs.unity3d.com/Packages/com.unity.entities@1.0/manual/index.html</a></li>
+  <li>godot-ecs（純 GDScript ECS 套件）：<a href="https://github.com/godothub/godot-ecs">https://github.com/godothub/godot-ecs</a></li>
+  <li>flecs（原生 C ECS 核心函式庫）：<a href="https://github.com/SanderMertens/flecs">https://github.com/SanderMertens/flecs</a></li>
+  <li>Flecs-Godot 橋接方案（在研究本條目時透過搜尋找到，不在原始連結清單中，但直接相關——詳見下文）：Stagehand（<a href="https://github.com/VerdantInteractive/Stagehand">https://github.com/VerdantInteractive/Stagehand</a>）、Glecs（<a href="https://github.com/GsLogiMaker/godot-glecs">https://github.com/GsLogiMaker/godot-glecs</a>）、godot-turbo（<a href="https://github.com/callmefloof/godot-turbo">https://github.com/callmefloof/godot-turbo</a>）</li>
+  <li><code>share.google/aimode/rpXAJaI9FymThFmGQ</code> — <strong>無法擷取</strong>（與本研究系列中先前的 aimode 連結一樣，遇到需要登入的 session 轉址）。未納入本文；若內容重要，請直接貼上內容。</li>
+</ul>
+
+<h2>Unity：DOTS/ECS</h2>
+<ul>
+  <li><strong>DOTS</strong>（Data-Oriented Technology Stack）是三個協同組件的統稱：<strong>Entities</strong> package（ECS 架構本身）、<strong>C# Job System</strong>，以及 <strong>Burst Compiler</strong>。這三者的設計目的是彼此加乘，而非獨立使用。</li>
+  <li><strong>核心概念</strong>：<strong>Entity</strong>（輕量級 ID）、<strong>Component</strong>（<code>IComponentData</code> —— 純資料、無邏輯）、<strong>System</strong>（<code>SystemBase</code>，受管理，或 <code>ISystem</code>，一種不受管理、相容 Burst 的 struct —— 也就是對符合查詢條件的 entities 進行操作的邏輯）、<strong>World</strong>（管理 entities 與 systems 的容器）。</li>
+  <li><strong>Archetype/chunk 記憶體佈局</strong>：擁有相同 component 組合的 entities 屬於同一個 <strong>Archetype</strong>；記憶體以 <strong>64KB chunks</strong> 配置，每個 chunk 存放多個相同 archetype 的 entities，其 components 以線性、連續的方式儲存——這是一種對快取友善、類似 Structure-of-Arrays 的佈局，刻意與個別 <code>GameObject</code>/<code>MonoBehaviour</code> 資料分散於記憶體中的方式不同。</li>
+  <li><strong>C# Job System</strong>：將 Unity 內部的 C++ job system 暴露給 C# 使用，讓 systems 中逐 entity 的工作（<code>IJobEntity</code>/<code>IJobChunk</code>）可以安全地排程到多個 worker 執行緒上——這裡的「安全」是指 Unity 會靜態追蹤每個 job 的讀寫存取，避免衝突的 jobs 產生 race condition，而彼此獨立的 jobs 則會自動並行執行。</li>
+  <li><strong>Burst Compiler</strong>：一個基於 LLVM 的編譯器，能將受限、「相容 Burst」的 C# 子集（不含受管理的參考、不含 GC 配置）直接轉譯為最佳化的原生機器碼——這正是讓 DOTS 程式碼在不脫離 C# 語法的情況下，達到接近原生速度的關鍵。</li>
+  <li><strong>整體效果</strong>：ECS 將資料組織成適合大量、快取友善處理的形式；Jobs 將該處理平行化到多個核心；Burst 將熱路徑上逐 entity 的程式碼編譯為原生速度。需要 Unity 2022.3.0f1 以上版本。Unity 官方的指引是將 ECS 視為與一般 GameObjects/MonoBehaviours 共存，用於真正需要這種規模的子系統，而非全面取代。</li>
+</ul>
+
+<h2>Godot：沒有官方 ECS——三種第三方策略</h2>
+<p>Godot 並未內建 ECS；預設架構是 Nodes + scripts（GDScript 或 C#）。所給出的三個專案代表了在 Godot 中取得 ECS 式架構（在其中一個案例中，甚至是 ECS 式效能）的三種結構上截然不同的策略：</p>
+
+<h3>1. godot-ecs —— 純 GDScript</h3>
+<ul>
+  <li><strong>語言</strong>：100% GDScript，零外部依賴，不需要編譯 GDExtension（依 README 所述，「即插即用、易於除錯」）。</li>
+  <li><strong>架構</strong>：Entities 持有 Components（純資料）；Systems 有兩種模式——<code>ECSSystem</code>（單執行緒、有狀態的「Direct Mode」，用於一般遊戲邏輯）與 <code>ECSParallel</code>（多執行緒的「Scheduled Mode」，具備自動相依性分析，以決定哪些部分可以並行執行）。</li>
+  <li><strong>Godot 整合方式</strong>：在由 <code>ECSRunner</code> 管理的獨立 <code>ECSWorld</code> 中執行，刻意與 Node/SceneTree 層級結構解耦。</li>
+  <li><strong>成熟度</strong>：積極維護中——328 顆星、25 個 release，最新版本 v3.1.0（2026 年 1 月），MIT 授權。</li>
+  <li><strong>但要注意</strong>：因為它是純 GDScript，其 systems 仍然透過 GDScript 解譯器執行。它提供了 ECS *組織上*的好處（乾淨的資料/邏輯分離、透過 <code>ECSParallel</code> 帶來的一些多執行緒能力），但<strong>沒有</strong> DOTS 式的原生程式碼吞吐量——整套技術堆疊中沒有任何相當於 Burst 的編譯步驟。</li>
+</ul>
+
+<h3>2. flecs —— 原生效能核心</h3>
+<ul>
+  <li><strong>語言</strong>：C（C99 API，零依賴），並在其上加了一層現代 C++17 API。</li>
+  <li><strong>架構</strong>：標準 ECS（entities/components/systems/queries），具備<strong>對快取友善的 archetype/SoA 儲存方式</strong>、<strong>無鎖（lockless）多核心排程器</strong>，並宣稱有能力達到<strong>每 frame 處理數百萬個 entities</strong>的規模。編譯時間不到 5 秒；8.5k GitHub 星數；已用於已上市的商業遊戲；在主要編譯器上有超過 13,000 項 CI 測試。</li>
+  <li><strong>Godot 整合方式</strong>：<strong>原生完全沒有</strong>——flecs 與引擎無關。它有 C#、Rust、Zig、Lua 與 Clojure 的社群綁定，但要從 Godot 存取它，需要一個原生橋接方案。</li>
+</ul>
+
+<h3>3. Flecs-Godot 橋接方案（本次研究過程中發現，不在原始連結清單中）</h3>
+<ul>
+  <li><strong>Stagehand</strong>（VerdantInteractive）—— 一個將 flecs 帶入 Godot 的 GDExtension；透過 <code>FlecsWorld</code> node 將 ECS world 整合進 Godot 的場景層級結構/生命週期中。效能關鍵的程式碼以 C++ 撰寫，而 Godot 的腳本語言在其他地方仍可正常使用。</li>
+  <li><strong>Glecs</strong>（GsLogiMaker/godot-glecs）—— 以 GDExtension 為基礎的 flecs Godot 綁定。</li>
+  <li><strong>godot-turbo</strong>（callmefloof）—— 一個由 flecs 驅動的 ECS <strong>engine module</strong>（而非 GDExtension），目標為 Godot 4.6+。明確宣傳了一個 <strong>「Script Bridge」</strong>，可在 ECS entities 上執行 GDScript/C# 方法，並提供渲染橋接 nodes（<code>InstancedRenderer3D</code>、<code>MultiMeshRenderer2D</code>/<code>3D</code>、<code>ComputeRenderer</code>），將 ECS 驅動的資料直接連接到 Godot 的渲染/instancing 系統（這與先前 <a href="../shaders-gpu-instancing/research.md">Shaders &amp; GPU Instancing</a> 條目有不錯的呼應）。</li>
+  <li><strong>三者共同的形態</strong>：ECS 模擬核心以原生 C/C++ 執行（flecs 本身）；GDScript/C# 只是作為其上的<strong>薄層腳本／橋接層</strong>。熱路徑邏輯存在於 C++ 中；GDScript 負責協調（orchestration）、面向玩法的掛鉤（hooks）以及設定。</li>
+</ul>
+
+<h2>GDScript vs C# 的問題——這才是真正的關鍵</h2>
+<p>這與本 repo 其他地方已經確立的模式相呼應（參見 <a href="../dotween-vs-tween/research.md">DOTween/Tween</a> 與 <a href="../linq-lazy-evaluation-vs-godot-array/research.md">LINQ/Array</a>）：GDScript 由於是解譯執行的，具有結構性的吞吐量限制，這個限制不會因為採用了 ECS 形狀的 API 就消失。</p>
+<ul>
+  <li>Unity 的 DOTS 之所以能達到那樣的效能，正是因為它在熱路徑上<strong>脫離了 C# 一般的執行模型</strong>——Burst 將受限的子集編譯成原生程式碼，Jobs 將其平行化。<strong>這兩者對 GDScript 都不存在。</strong> 沒有「給 GDScript 用的 Burst」這種東西。</li>
+  <li>Godot 的 <strong>C#</strong> 支援在架構上更接近 DOTS 所需要的東西（編譯執行、JIT 化），但 Godot 並沒有隨附官方 ECS 框架、與之綁定的相當於 Burst 的編譯器，或是給 C# 用的大量 entity job 系統——即使走 C# 這條路，你仍然得採用第三方方案。</li>
+  <li><strong>godot-ecs（純 GDScript）</strong>提供了*組織上*的優勢，但沒有吞吐量上的優勢——GDScript 底層終究還是 GDScript。如果動機是程式碼結構而非原始的 entity 數量規模，這是合適的選擇。</li>
+  <li><strong>flecs + 一個 Godot 橋接方案</strong>能提供與 DOTS 相當的原始效能——但熱邏輯必須用 <strong>C++</strong> 撰寫，而不是 GDScript。所調查的三個橋接方案中，沒有一個能讓你用 GDScript 撰寫效能關鍵的模擬程式碼，同時仍取得 flecs 級別的吞吐量；在這三者之中，GDScript 的角色都僅止於膠合層。</li>
+</ul>
+<p><strong>在所調查的生態系中，不存在一種選項能在模擬邏輯本身以 GDScript 撰寫的情況下，提供與 Unity DOTS 相當的原始效能。</strong> 這種組合並不存在於所調查的生態系中——原因與 GDScript 沒有 Burst 編譯器的結構性理由相同：無論周圍的資料如何組織，一個解譯式語言都無法達到每 frame 數百萬個 entities 的吞吐量。</p>
+
+<h2>結論與建議</h2>
+<p>考量到目前設定的優先順序（「重點是使用 GDScript」），真正的決策在於<strong>這個專案採用 ECS 究竟是為了什麼</strong>——這才決定了哪條路徑（或是「完全跳過 ECS」）才是正確的：</p>
+<ol>
+  <li><strong>如果目標是架構性的</strong>（將邏輯與 Node tree 解耦、更乾淨的 systems/資料分離、透過相依性排程的平行模式取得中等程度的多執行緒能力）——<strong><code>godot-ecs</code> 是正確的選擇，而且是 GDScript 原生的</strong>，直接符合目前設定的偏好。除非 Unity 那邊特別依賴 DOTS 來取得原始 entity 數量的吞吐量，否則這很有可能就已足夠。</li>
+  <li><strong>如果目標是與 DOTS 實際提供的效能對等的吞吐量</strong>（大規模模擬、人群、以 entity 表示的粒子達到 DOTS 級別的規模）——那就需要<strong>透過原生橋接方案使用 flecs（Stagehand/Glecs/godot-turbo），並將熱路徑邏輯以 C++ 撰寫</strong>，而不是 GDScript。「使用 GDScript」屆時只能適用於最外層的膠合／玩法層——這需要事先明確地做出取捨決定並被接受，而不是在遷移過程中才發現。</li>
+  <li><strong>混合方案是可行的，而且可以說是最好的預設選擇</strong>：只針對真正需要大量 entity 吞吐量的特定子系統使用以 flecs 為基礎的橋接方案，其他部分則維持一般的 Godot Nodes/GDScript——這正好呼應了 Unity 自身的指引，即 ECS 與 GameObjects 是設計來共存的，而非全面取代。</li>
+  <li><strong>不要預設就採用這三者中的任何一個。</strong> 這三者都是第三方方案，成熟度各不相同（<code>godot-ecs</code>：單一 addon 的 GDScript 專案，328 顆星；flecs 橋接方案：較新、較小型的 GDExtension 或 module 專案，*在 Godot 中*的生產環境實績尚未確認，儘管 flecs 本身在其他地方已有生產環境的實績）。請先確認專案實際的 DOTS 使用情況（見後續追蹤項目）——一個輕度使用 DOTS 的專案，可能完全不需要在 Godot 中採用任何 ECS 框架。</li>
+</ol>
+
+<h2>後續追蹤項目／待確認事項</h2>
+<ul>
+  <li>確認這個專案實際的 Unity DOTS/ECS 使用情況：哪些 systems 用到它、每個 frame 大致有多少 entities，以及它的存在是為了原始吞吐量還是僅僅是架構上的分離——這是決定哪種 Godot 方案（若有）適用的最大因素。</li>
+  <li>如果原始吞吐量很重要，直接評估這三個 flecs-Godot 橋接方案（Stagehand、Glecs、godot-turbo）——它們是在本次研究過程中浮現的，而非原始請求中的項目，其成熟度／支援情況／API 穩定性在這一輪研究中並未深入驗證。</li>
+  <li>確認團隊／build pipeline 是否能容忍熱路徑中出現 C++（技能組合、GDExtension 建置複雜度）——這決定了上述選項 2/3 是否現實可行，無論效能需求為何。</li>
+  <li>如果選擇 <code>godot-ecs</code>（純 GDScript），應盡早針對專案實際的 entity 數量對其 <code>ECSParallel</code> 模式進行 benchmark——在解譯式語言中「一些多執行緒能力」與 Unity 的 Jobs+Burst 並不屬於同一效能等級，這一點應該被驗證，而不是被假設。</li>
+  <li>檢查 Unity 專案中以 Burst 編譯的 systems 是否依賴 SIMD/向量化運算（這在 DOTS 程式碼中很常見)——如果是，這是純 GDScript 無法直接替代該程式碼的另一個原因，進一步強化了效能關鍵子系統需要原生橋接方案的必要性。</li>
+</ul>
+
+</div>
+</body>
+</html>
